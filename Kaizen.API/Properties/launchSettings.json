@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Kaizen.API": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7081",
+      "launchBrowser": false
+    }
+  }
+}
