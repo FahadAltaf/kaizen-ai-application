@@ -17,8 +17,8 @@ namespace Kaizen.API
             _dataService = dataService;
         }
 
-        [Function("Switch/{threadId}/{mode}")]
-        public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req, string threadId, string mode)
+        [Function("Switch")]
+        public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post",Route = "Switch/{threadId}/{mode}")] HttpRequestData req, string threadId, string mode)
         {
             _logger.LogInformation("C# HTTP trigger function processed a request.");
             APIGeneralResponse<bool> data = new APIGeneralResponse<bool>();

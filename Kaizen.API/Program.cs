@@ -13,6 +13,12 @@ var host = new HostBuilder()
         services.AddSingleton<AIAssistant>();
         services.AddSingleton<WhatsAppService>();
         services.AddHttpClient();
+        services.AddSingleton<IWebPubSubService, WebPubSubService>(serviceProvider =>
+        {
+            string connectionString = Environment.GetEnvironmentVariable("WebPubSub");
+            string hubName = "kaizen";
+            return new WebPubSubService(connectionString, hubName);
+        });
     })
     .Build();
 

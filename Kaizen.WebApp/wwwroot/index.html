@@ -44,6 +44,7 @@
                 var socket = new WebSocket(url);
 
                 socket.onmessage = function (event) {
+                    console.log(event);
                     dotNetObject.invokeMethodAsync('ReceiveMessage', event.data);
                 };
 

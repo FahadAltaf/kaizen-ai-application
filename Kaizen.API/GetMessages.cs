@@ -17,8 +17,8 @@ namespace Kaizen.API
             _aiAssistant = aiAssistant;
         }
 
-        [Function("conversation/{threadId}")]
-        public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req, string threadId)
+        [Function("conversation")]
+        public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post",Route = "conversation/{threadId}")] HttpRequestData req, string threadId)
         {
             _logger.LogInformation("C# HTTP trigger function processed a request.");
 

@@ -16,17 +16,19 @@ namespace Kaizen.API
         private readonly AIAssistant _aIAssistant;
         private readonly DataService _dataService;
         private readonly WhatsAppService _whatsAppService; // New Service
-
+        private readonly IWebPubSubService _webPubSubService;
         public OnWhatsAppMessageRecieved(
             ILoggerFactory loggerFactory,
             AIAssistant aIAssistant,
             DataService dataService,
-            WhatsAppService whatsAppService)
+            WhatsAppService whatsAppService,
+            IWebPubSubService webPubSubService)
         {
             _logger = loggerFactory.CreateLogger<OnWhatsAppMessageRecieved>();
             _aIAssistant = aIAssistant;
             _dataService = dataService;
             _whatsAppService = whatsAppService;
+            _webPubSubService = webPubSubService;
         }
 
         [Function("OnWhatsAppMessageReceived")]
@@ -34,9 +36,7 @@ namespace Kaizen.API
         {
             var response = req.CreateResponse(HttpStatusCode.OK);
             APIGeneralResponse<bool> data = new APIGeneralResponse<bool>();
-            string connectionString =  Environment.GetEnvironmentVariable("WebPubSub");
-            string hubName = "kaizen"; // Replace with your hub name
-            var serviceClient = new WebPubSubServiceClient(connectionString, hubName);
+           
             try
             {
                 #region Will only use for whatsapp webhook verification
@@ -121,7 +121,8 @@ namespace Kaizen.API
 
                                 // Get AI response for the new thread
                                 await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = message, Thread_Id = openAiThread.id });
-                                await serviceClient.SendToAllAsync("messageRecieved", Azure.Core.ContentType.TextPlain);
+                                await _webPubSubService.MessageRecieved();
+
                                 aiMessage = await _aIAssistant.GetAIResponse(assistantId, openAiThread.id);
                             }
                             else
@@ -132,14 +133,14 @@ namespace Kaizen.API
                                 {
                                     // Get AI response if in AI mode
                                     await _aIAssistant. AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = message, Thread_Id = thread.ThreadId });
-                                    await serviceClient.SendToAllAsync("messageRecieved", Azure.Core.ContentType.TextPlain);
+                                    await _webPubSubService.MessageRecieved();
                                     aiMessage = await _aIAssistant.GetAIResponse(thread.AssistantId, thread.ThreadId);
                                 }
                                 else
                                 {
                                     // Add message to thread if not in AI mode
                                     await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = message, Thread_Id = thread.ThreadId });
-                                    await serviceClient.SendToAllAsync("messageRecieved", Azure.Core.ContentType.TextPlain);
+                                    await _webPubSubService.MessageRecieved();
                                 }
                             }
 
@@ -173,7 +174,7 @@ namespace Kaizen.API
             }
             finally
             {
-                await serviceClient.CloseAllConnectionsAsync();
+              
             }
 
             // Write the API general response to the HTTP response

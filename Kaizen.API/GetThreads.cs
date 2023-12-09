@@ -1,4 +1,5 @@
 using System.Net;
+using Amazon.Auth.AccessControlPolicy.ActionIdentifiers;
 using Kaizen.Entities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -17,8 +18,8 @@ namespace Kaizen.API
             _aiAssistant = aiAssistant;
         }
 
-        [Function("Threads/{assistantId}")]
-        public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req, string assistantId)
+        [Function("Threads")]
+        public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post",Route = "threads/{assistantId}")] HttpRequestData req, string assistantId)
         {
             _logger.LogInformation("C# HTTP trigger function processed a request.");
 

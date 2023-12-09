@@ -183,40 +183,34 @@
     public List<Conversations> messages { get; set; }
     public string text { get; set; }
     private ElementReference messagesContainer;
-
+    public string APICode { get; set; } = "7Q7Uo9EsyC4jHnqocWFrwrYm-Cc94NHjHgYG4-wt2X_8AzFuHQ86RA==";
     private WebPubSubServiceClient serviceClient;
-    private string connectionString = "";// Your Web PubSub connection string
     private string hubName = "kaizen"; // Your hub name
 
 
     protected override async Task OnInitializedAsync()
     {
-        connectionString = Configuration["WebPubSub"];
-        serviceClient = new WebPubSubServiceClient(connectionString, hubName);
+        serviceClient = new WebPubSubServiceClient("Endpoint=https://kaizen.webpubsub.azure.com;AccessKey=qkNfsaNwCl4oPuYWg/fUK0pNHpvPUUkwHi+cWHq48y8=;Version=1.0;", hubName);
         var url = serviceClient.GetClientAccessUri();
 
         await JSRuntime.InvokeVoidAsync("websocketInterop.connect", DotNetObjectReference.Create(this), url);
     }
 
     [JSInvokable]
-    public void ReceiveMessage(string message)
+    public async void ReceiveMessage(string message)
     {
         switch (message)
         {
             case "messageRecieved":
-                Console.WriteLine(message);
+            if(selectedThreadRecord!=null)
+                await LoadMessages(selectedThreadRecord.ThreadId);
                 break;
             default:
                 break;
         }
     }
 
-    private void HandleNewMessage(string message)
-    {
-        // Logic to handle the "new" message
-        // Update UI or trigger other actions
-        Console.WriteLine(message);
-    }
+    
 
 
     async Task LoadMessages(string threadId)
@@ -227,7 +221,7 @@
             selectedThreadRecord = threads.FirstOrDefault(x => x.ThreadId == threadId);
             messages = null;
             StateHasChanged();
-            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>($"api/Conversation/{threadId}?code={Configuration["APICode"]}");
+            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>($"api/Conversation/{threadId}?code={APICode}");
             messages = response.Data;
 
         }
@@ -277,7 +271,7 @@
     {
         if (firstRender)
         {
-            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={Configuration["APICode"]}");
+            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={APICode}");
             threads = response.Data.OrderByDescending(x => x.LastActivityAt).ToList();
 
             StateHasChanged();
@@ -304,7 +298,7 @@
                 await ScrollToBottom();
                 StateHasChanged();
 
-                var response = await client.PostAsJsonAsync($"api/Chat?code={Configuration["APICode"]}", new ConversationModel
+                var response = await client.PostAsJsonAsync($"api/Chat?code={APICode}", new ConversationModel
 
                     {
                         AssistantId = selectedThreadRecord.AssistantId,
@@ -353,10 +347,10 @@
     {
         try
         {
-            var response = await client.GetFromJsonAsync<APIGeneralResponse<bool>>($"api/Switch/{selectedThreadRecord.ThreadId}/{!selectedThreadRecord.AiMode}?code={Configuration["APICode"]}");
+            var response = await client.GetFromJsonAsync<APIGeneralResponse<bool>>($"api/Switch/{selectedThreadRecord.ThreadId}/{!selectedThreadRecord.AiMode}?code={APICode}");
             if (response.Status)
             {
-                var response1 = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={Configuration["APICode"]}");
+                var response1 = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={APICode}");
                 threads = response1.Data;
                 await LoadMessages(selectedThreadRecord.ThreadId);
             }
