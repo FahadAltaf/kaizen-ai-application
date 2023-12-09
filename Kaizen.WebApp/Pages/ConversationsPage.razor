@@ -3,6 +3,8 @@
 @using Azure.Messaging.WebPubSub
 @inject HttpClient client
 @inject IJSRuntime JSRuntime
+@inject IConfiguration Configuration
+
 
 <main class="lg:pl-72 flex flex-col h-screen">
     <div class="xl:pl-96 flex-1 overflow-y-auto" @ref="messagesContainer">
@@ -183,12 +185,13 @@
     private ElementReference messagesContainer;
 
     private WebPubSubServiceClient serviceClient;
-    private string connectionString = "Endpoint=https://kaizen.webpubsub.azure.com;AccessKey=qkNfsaNwCl4oPuYWg/fUK0pNHpvPUUkwHi+cWHq48y8=;Version=1.0;"; // Your Web PubSub connection string
+    private string connectionString = "";// Your Web PubSub connection string
     private string hubName = "kaizen"; // Your hub name
 
 
     protected override async Task OnInitializedAsync()
     {
+        connectionString = Configuration["WebPubSub"];
         serviceClient = new WebPubSubServiceClient(connectionString, hubName);
         var url = serviceClient.GetClientAccessUri();
 
@@ -224,7 +227,7 @@
             selectedThreadRecord = threads.FirstOrDefault(x => x.ThreadId == threadId);
             messages = null;
             StateHasChanged();
-            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>($"api/Conversation/{threadId}?code={Environment.GetEnvironmentVariable("APICode")}");
+            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>($"api/Conversation/{threadId}?code={Configuration["APICode"]}");
             messages = response.Data;
 
         }
@@ -274,7 +277,7 @@
     {
         if (firstRender)
         {
-            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={Environment.GetEnvironmentVariable("APICode")}");
+            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={Configuration["APICode"]}");
             threads = response.Data.OrderByDescending(x => x.LastActivityAt).ToList();
 
             StateHasChanged();
@@ -301,7 +304,7 @@
                 await ScrollToBottom();
                 StateHasChanged();
 
-                var response = await client.PostAsJsonAsync($"api/Chat?code={Environment.GetEnvironmentVariable("APICode")}", new ConversationModel
+                var response = await client.PostAsJsonAsync($"api/Chat?code={Configuration["APICode"]}", new ConversationModel
 
                     {
                         AssistantId = selectedThreadRecord.AssistantId,
@@ -350,10 +353,10 @@
     {
         try
         {
-            var response = await client.GetFromJsonAsync<APIGeneralResponse<bool>>($"api/Switch/{selectedThreadRecord.ThreadId}/{!selectedThreadRecord.AiMode}?code={Environment.GetEnvironmentVariable("APICode")}");
+            var response = await client.GetFromJsonAsync<APIGeneralResponse<bool>>($"api/Switch/{selectedThreadRecord.ThreadId}/{!selectedThreadRecord.AiMode}?code={Configuration["APICode"]}");
             if (response.Status)
             {
-                var response1 = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={Environment.GetEnvironmentVariable("APICode")}");
+                var response1 = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={Configuration["APICode"]}");
                 threads = response1.Data;
                 await LoadMessages(selectedThreadRecord.ThreadId);
             }
