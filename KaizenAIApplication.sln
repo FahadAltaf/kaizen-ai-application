@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaizen.API", "Kaizen.API\Kaizen.API.csproj", "{679D5CEF-4431-4CBE-B88D-7E95F1D53FF1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kaizen.API", "Kaizen.API\Kaizen.API.csproj", "{679D5CEF-4431-4CBE-B88D-7E95F1D53FF1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaizen.Entities", "Kaizen.Entities\Kaizen.Entities.csproj", "{2D58BE3D-ACCD-4329-9F7C-3EEE4FAF4C0D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kaizen.Entities", "Kaizen.Entities\Kaizen.Entities.csproj", "{2D58BE3D-ACCD-4329-9F7C-3EEE4FAF4C0D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaizen.WebApp", "Kaizen.WebApp\Kaizen.WebApp.csproj", "{74BC4E3A-0669-4EEC-B679-8EC57F703ACF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kaizen.WebApp", "Kaizen.WebApp\Kaizen.WebApp.csproj", "{74BC4E3A-0669-4EEC-B679-8EC57F703ACF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

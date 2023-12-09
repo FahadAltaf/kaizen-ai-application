@@ -261,9 +261,8 @@ namespace Kaizen.Entities
         }
 
 
-        public async Task<string> GetAIResponse(string assistantId, string threadId, string content)
+        public async Task<string> GetAIResponse(string assistantId, string threadId)
         {
-            var message = await AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = content, Thread_Id = threadId });
             var openAIRun = await CreateRun(assistantId, threadId);
 
             while (openAIRun.status != "completed")

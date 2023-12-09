@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.Json;
+using System.Threading;
 using Azure.Messaging.ServiceBus;
+using Azure.Messaging.WebPubSub;
 using Kaizen.Entities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -19,23 +21,25 @@ namespace Kaizen.API
             ILoggerFactory loggerFactory,
             AIAssistant aIAssistant,
             DataService dataService,
-            WhatsAppService whatsAppService) // Inject WhatsAppService
+            WhatsAppService whatsAppService)
         {
             _logger = loggerFactory.CreateLogger<OnWhatsAppMessageRecieved>();
             _aIAssistant = aIAssistant;
             _dataService = dataService;
-            _whatsAppService = whatsAppService; // Assign to field
+            _whatsAppService = whatsAppService;
         }
 
         [Function("OnWhatsAppMessageReceived")]
         public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req)
         {
-            // Create a response with default status of OK
             var response = req.CreateResponse(HttpStatusCode.OK);
             APIGeneralResponse<bool> data = new APIGeneralResponse<bool>();
-
+            string connectionString =  Environment.GetEnvironmentVariable("WebPubSub");
+            string hubName = "kaizen"; // Replace with your hub name
+            var serviceClient = new WebPubSubServiceClient(connectionString, hubName);
             try
             {
+                #region Will only use for whatsapp webhook verification
                 var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
                 var mode = query["hub.mode"];
                 var token = query["hub.verify_token"];
@@ -62,7 +66,7 @@ namespace Kaizen.API
                         return response;
                     }
                 }
-
+                #endregion
 
                 // Initialize necessary variables
                 string aiMessage = string.Empty;
@@ -70,90 +74,95 @@ namespace Kaizen.API
                 string from = string.Empty;
                 string number = string.Empty;
 
-                // Deserialize the request payload
                 var root = await req.ReadFromJsonAsync<MetaWebhookModel>();
+                _logger.LogWarning("Received payload: {Payload}", JsonSerializer.Serialize(root));
 
-                // Log the incoming payload for debugging purposes
-                _logger.LogInformation("Received payload: {Payload}", JsonSerializer.Serialize(root));
 
-                try
+                // Extract message details from the payload
+                switch (root.entry[0].changes[0].value.messages[0].type)
                 {
-                    // Extract message details from the payload
-                    message = root.entry[0].changes[0].value.messages[0].text.body;
-                    from = root.entry[0].changes[0].value.messages[0].from;
-                    number = root.entry[0].changes[0].value.metadata.display_phone_number;
-                }
-                catch
-                {
-                    // Log and return if message extraction fails
-                    _logger.LogWarning("Failed to extract message details from payload.");
-                    return response;
-                }
+                    case "text":
+                        message = root.entry[0].changes[0].value.messages[0].text.body;
+                        from = root.entry[0].changes[0].value.messages[0].from;
+                        number = root.entry[0].changes[0].value.metadata.display_phone_number;
 
-                // Proceed only if a message is present
-                if (!string.IsNullOrEmpty(message))
-                {
-                    // Retrieve Assistant ID linked with the platform
-                    var assistantId = await _dataService.GetAssistantLinkedWithPlatform(number, ConversationPlatform.WhatsApp);
-
-                    // Check if a thread exists against the ID and platform
-                    var thread = await _dataService.ThreadExistsInDatabaseAgainstIdAndPlatform(assistantId, from);
-                    if (thread == null)
-                    {
-                        ServiceBusClient client = new ServiceBusClient(Environment.GetEnvironmentVariable("BAServiceBus"));
-                        // Handle the case where the thread does not exist
-                        // Create thread metadata and a new thread record
-                        var metadata = new Dictionary<string, string>
+                        // Proceed only if a message is present
+                        if (!string.IsNullOrEmpty(message))
                         {
-                            ["AssistantId"] = assistantId,
-                            ["Platform"] = Enum.GetName(typeof(ConversationPlatform), ConversationPlatform.WhatsApp),
-                            ["PlatformUserId"] = from
-                        };
+                            // Retrieve Assistant ID linked with the platform
+                            var assistantId = await _dataService.GetAssistantLinkedWithPlatform(number, ConversationPlatform.WhatsApp);
 
-                        var openAiThread = await _aIAssistant.CreateThread(assistantId, metadata);
+                            // Check if a thread exists against the ID and platform
+                            var thread = await _dataService.ThreadExistsInDatabaseAgainstIdAndPlatform(assistantId, from);
+                            if (thread == null)
+                            {
+                                ServiceBusClient client = new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBus"));
+                                // Handle the case where the thread does not exist
+                                // Create thread metadata and a new thread record
+                                var metadata = new Dictionary<string, string>
+                                {
+                                    ["AssistantId"] = assistantId,
+                                    ["Platform"] = Enum.GetName(typeof(ConversationPlatform), ConversationPlatform.WhatsApp),
+                                    ["PlatformUserId"] = from
+                                };
 
-                        // Send the thread record to the service bus for processing
-                        var createThreadRequest = client.CreateSender("create-thread-record");
-                        await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord
-                        {
-                            AiMode = true,
-                            AssistantId = assistantId,
-                            Platform = ConversationPlatform.WhatsApp,
-                            PlatformUserId = from,
-                            ThreadId = openAiThread.id
-                        })));
+                                var openAiThread = await _aIAssistant.CreateThread(assistantId, metadata);
 
-                        // Get AI response for the new thread
-                        aiMessage = await _aIAssistant.GetAIResponse(assistantId, openAiThread.id, message);
-                    }
-                    else
-                    {
-                        // Handle existing thread
-                        if (thread.AiMode)
-                        {
-                            // Get AI response if in AI mode
-                            aiMessage = await _aIAssistant.GetAIResponse(thread.AssistantId, thread.ThreadId, message);
+                                // Send the thread record to the service bus for processing
+                                var createThreadRequest = client.CreateSender("create-thread-record");
+                                await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord
+                                {
+                                    AiMode = true,
+                                    AssistantId = assistantId,
+                                    Platform = ConversationPlatform.WhatsApp,
+                                    PlatformUserId = from,
+                                    ThreadId = openAiThread.id, LastActivityAt =DateTime.UtcNow
+                                })));
+
+                                // Get AI response for the new thread
+                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = message, Thread_Id = openAiThread.id });
+                                await serviceClient.SendToAllAsync("messageRecieved", Azure.Core.ContentType.TextPlain);
+                                aiMessage = await _aIAssistant.GetAIResponse(assistantId, openAiThread.id);
+                            }
+                            else
+                            {
+                              await  _dataService.UpdateThreadRecordActivity(thread.ThreadId);
+                                // Handle existing thread
+                                if (thread.AiMode)
+                                {
+                                    // Get AI response if in AI mode
+                                    await _aIAssistant. AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = message, Thread_Id = thread.ThreadId });
+                                    await serviceClient.SendToAllAsync("messageRecieved", Azure.Core.ContentType.TextPlain);
+                                    aiMessage = await _aIAssistant.GetAIResponse(thread.AssistantId, thread.ThreadId);
+                                }
+                                else
+                                {
+                                    // Add message to thread if not in AI mode
+                                    await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = message, Thread_Id = thread.ThreadId });
+                                    await serviceClient.SendToAllAsync("messageRecieved", Azure.Core.ContentType.TextPlain);
+                                }
+                            }
+
+                            // Send AI response back to WhatsApp if there is a message to send
+                            if (!string.IsNullOrEmpty(aiMessage))
+                            {
+                                await _whatsAppService.SendWhatsAppMessage(new SendMessageBody { From = number, Message = aiMessage, To = from });
+                            }
                         }
                         else
                         {
-                            // Add message to thread if not in AI mode
-                            await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = message, Thread_Id = thread.ThreadId });
+                            // Log and handle the case where there is no message
+                            data.Message = "No content for processing found in the request.";
+                            data.Status = false;
+                            _logger.LogWarning(data.Message);
                         }
-                    }
+                        break;
+                    default:
+                        break;
+                }
 
-                    // Send AI response back to WhatsApp if there is a message to send
-                    if (!string.IsNullOrEmpty(aiMessage))
-                    {
-                        await _whatsAppService.SendWhatsAppMessage(new SendMessageBody { From = number, Message = aiMessage, To = from });
-                    }
-                }
-                else
-                {
-                    // Log and handle the case where there is no message
-                    data.Message = "No content for processing found in the request.";
-                    data.Status = false;
-                    _logger.LogWarning(data.Message);
-                }
+
+               
             }
             catch (Exception ex)
             {
@@ -161,6 +170,10 @@ namespace Kaizen.API
                 data.Message = $"An error occurred: {ex.Message}";
                 data.Status = false;
                 _logger.LogError(ex, "An exception occurred while processing the WhatsApp message.");
+            }
+            finally
+            {
+                await serviceClient.CloseAllConnectionsAsync();
             }
 
             // Write the API general response to the HTTP response

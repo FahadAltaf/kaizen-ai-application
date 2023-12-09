@@ -15,7 +15,7 @@ namespace Kaizen.Entities
     {
         private readonly IHttpClientFactory _clientFactory;
         private readonly ILogger<WhatsAppService> _logger;
-        private static readonly string _url = "https://graph.facebook.com/v17.0/133908173119659/messages";
+        private static readonly string _url = "https://graph.facebook.com/v18.0/193557653834811/messages";
         private static readonly string _token = Environment.GetEnvironmentVariable("MetaKey");
 
         public WhatsAppService(IHttpClientFactory clientFactory, ILogger<WhatsAppService> logger)

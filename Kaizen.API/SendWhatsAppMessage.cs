@@ -18,7 +18,7 @@ namespace Kaizen.API
         }
 
         [Function(nameof(SendWhatsAppMessage))]
-        public async Task Run([ServiceBusTrigger("send-whatsapp-message", Connection = "BAServiceBus")] ServiceBusReceivedMessage message)
+        public async Task Run([ServiceBusTrigger("send-whatsapp-message", Connection = "ServiceBus")] ServiceBusReceivedMessage message)
         {
             try
             {

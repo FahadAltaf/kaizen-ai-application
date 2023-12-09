@@ -11,6 +11,11 @@
     <link href="manifest.webmanifest" rel="manifest" />
     <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <style>
+        .force-border {
+            border: 1px solid #667eea !important; /* This is the hex code for Tailwind's indigo-500 */
+        }
+    </style>
 </head>
 
 <body>
@@ -23,6 +28,39 @@
     
     <script src="_framework/blazor.webassembly.js"></script>
     <script>navigator.serviceWorker.register('service-worker.js');</script>
+    <script>
+        function scrollToBottom(element) {
+            console.log("scrolling...")
+            if (element.scrollHeight > element.clientHeight) {
+                console.log("Element is scrollable. Scrolling to bottom...");
+                element.scrollTop = element.scrollHeight;
+            } else {
+                console.log("Element is not scrollable. No action taken.");
+            }
+        }
+
+        window.websocketInterop = {
+            connect: function (dotNetObject, url) {
+                var socket = new WebSocket(url);
+
+                socket.onmessage = function (event) {
+                    dotNetObject.invokeMethodAsync('ReceiveMessage', event.data);
+                };
+
+                socket.onopen = function (event) {
+                    console.log('WebSocket connection established');
+                };
+
+                socket.onerror = function (event) {
+                    console.error('WebSocket error observed:', event);
+                };
+
+                socket.onclose = function (event) {
+                    console.log('WebSocket connection closed');
+                };
+            }
+        };
+    </script>
 </body>
 
 </html>

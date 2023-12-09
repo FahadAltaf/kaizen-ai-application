@@ -352,7 +352,12 @@ namespace Kaizen.Entities
     #endregion
 
     #region Models
-
+    public class AIResponse
+    {
+        public string ThreadId { get; set; }
+        public string UserMessage { get; set; }
+        public string AIMessage { get; set; }
+    }
     public class ConversationModel
     {
         public string AssistantId { get; set; }
@@ -402,6 +407,7 @@ namespace Kaizen.Entities
         public ConversationPlatform Platform { get; set; }
         public string PlatformUserId { get; set; }
         public bool AiMode { get; set; }
+        public DateTime LastActivityAt { get; set; }
     }
 
     public class AssistantRecord
