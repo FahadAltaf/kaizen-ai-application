@@ -123,7 +123,7 @@ namespace Kaizen.Entities
             throw new Exception(await response.Content.ReadAsStringAsync());
 
         }
-        
+
         public async Task<OpenAIAssistant> RetrieveAssistantAsync(string assistantId)
         {
             Console.WriteLine($"Retriving assistant: {assistantId}");
@@ -247,7 +247,7 @@ namespace Kaizen.Entities
             {
                 url += $"&before={after}";
             }
-            
+
             var response = await _httpClient.GetFromJsonAsync<OpenAIMessageList>(url);
             if (response != null)
             {
@@ -280,15 +280,15 @@ namespace Kaizen.Entities
                     {
                         case "handoverToHuman":
                             toolResponse = await HandOverToHuman(threadId);
-                            Console.WriteLine("Tool response : "+toolResponse);
+                            Console.WriteLine("Tool response : " + toolResponse);
                             break;
                         default:
-                            
+
                             break;
                     }
                     await SubmitToolOutput(threadId, openAIRun.id, openAIRun.required_action.submit_tool_outputs.tool_calls[0].id, toolResponse);
                     //openAIRun.required_action.submit_tool_outputs.tool_calls[0].function.name will give us the function name to be called and that function will always return a text.
-                    
+
                 }
             }
 
@@ -303,7 +303,7 @@ namespace Kaizen.Entities
             string message = "";
             try
             {
-            var response= await   _httpClient.GetFromJsonAsync<APIGeneralResponse<bool>>($"https://kaizenchatbot.azurewebsites.net/api/HandoverToHuman/{threadId}?code=7Q7Uo9EsyC4jHnqocWFrwrYm-Cc94NHjHgYG4-wt2X_8AzFuHQ86RA==");
+                var response = await _httpClient.GetFromJsonAsync<APIGeneralResponse<bool>>($"https://kaizenchatbot.azurewebsites.net/api/HandoverToHuman/{threadId}?code=7Q7Uo9EsyC4jHnqocWFrwrYm-Cc94NHjHgYG4-wt2X_8AzFuHQ86RA==");
                 message = JsonSerializer.Serialize(response);
             }
             catch (Exception ex)
