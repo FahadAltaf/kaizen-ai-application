@@ -39,6 +39,13 @@
             }
         }
 
+        function playNotificationSound(val) {
+            var audio = (val == 0) ? new Audio('pop.mp3') : new Audio('tone.wav'); // Adjust the path
+            audio.play().catch(error => {
+                console.error("Audio playback failed:", error);
+            });
+        }
+
         window.websocketInterop = {
             connect: function (dotNetObject, url) {
                 var socket = new WebSocket(url);

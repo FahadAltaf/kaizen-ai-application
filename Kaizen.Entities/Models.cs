@@ -256,7 +256,9 @@ namespace Kaizen.Entities
 
     public class Conversations
     {
+        public string id { get; set; }
         public string role { get; set; }
+        public long createdAt { get; set; }
         public string content { get; set; }
         public Dictionary<string, string> metadata { get; set; } = new Dictionary<string, string>();
     }
@@ -408,6 +410,8 @@ namespace Kaizen.Entities
         public string PlatformUserId { get; set; }
         public bool AiMode { get; set; }
         public DateTime LastActivityAt { get; set; }
+        public bool NeedsAssistance { get; set; }
+        public bool HasNewMessages { get; set; }
     }
 
     public class AssistantRecord

@@ -70,6 +70,7 @@ namespace Kaizen.API
 
                 // Initialize necessary variables
                 string aiMessage = string.Empty;
+                string aiThread = "";
                 string message = string.Empty;
                 string from = string.Empty;
                 string number = string.Empty;
@@ -121,9 +122,10 @@ namespace Kaizen.API
 
                                 // Get AI response for the new thread
                                 await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = message, Thread_Id = openAiThread.id });
-                                await _webPubSubService.MessageRecieved();
+                                await _webPubSubService.MessageRecieved(openAiThread.id);
 
                                 aiMessage = await _aIAssistant.GetAIResponse(assistantId, openAiThread.id);
+                                aiThread = openAiThread.id;
                             }
                             else
                             {
@@ -133,21 +135,24 @@ namespace Kaizen.API
                                 {
                                     // Get AI response if in AI mode
                                     await _aIAssistant. AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = message, Thread_Id = thread.ThreadId });
-                                    await _webPubSubService.MessageRecieved();
+                                    await _webPubSubService.MessageRecieved(thread.ThreadId);
                                     aiMessage = await _aIAssistant.GetAIResponse(thread.AssistantId, thread.ThreadId);
+                                    aiThread = thread.ThreadId;
                                 }
                                 else
                                 {
                                     // Add message to thread if not in AI mode
                                     await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = message, Thread_Id = thread.ThreadId });
-                                    await _webPubSubService.MessageRecieved();
+                                    await _webPubSubService.MessageRecieved(thread.ThreadId);
                                 }
                             }
 
                             // Send AI response back to WhatsApp if there is a message to send
                             if (!string.IsNullOrEmpty(aiMessage))
                             {
+                                
                                 await _whatsAppService.SendWhatsAppMessage(new SendMessageBody { From = number, Message = aiMessage, To = from });
+                                await _webPubSubService.MessageRecieved(aiThread);
                             }
                         }
                         else

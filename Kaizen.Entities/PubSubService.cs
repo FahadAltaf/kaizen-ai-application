@@ -9,7 +9,8 @@ namespace Kaizen.Entities
 {
     public interface IWebPubSubService
     {
-        Task MessageRecieved();
+        Task MessageRecieved(string threadId);
+        Task NeedAssistance(string threadId);
     }
 
     public class WebPubSubService : IWebPubSubService
@@ -21,9 +22,14 @@ namespace Kaizen.Entities
             _client = new WebPubSubServiceClient(connectionString, hubName);
         }
 
-        public async Task MessageRecieved()
+        public async Task MessageRecieved(string threadId)
         {
-          await  _client.SendToAllAsync("messageRecieved", Azure.Core.ContentType.TextPlain);
+          await  _client.SendToAllAsync($"messageRecieved-{threadId}", Azure.Core.ContentType.TextPlain);
+        }
+
+        public async Task NeedAssistance(string threadId)
+        {
+            await _client.SendToAllAsync($"needAssistance-{threadId}", Azure.Core.ContentType.TextPlain);
         }
 
         // Implement the methods

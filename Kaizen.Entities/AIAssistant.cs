@@ -239,18 +239,15 @@ namespace Kaizen.Entities
             throw new Exception($"Unable to retrive message details.");
         }
 
-        public async Task<List<OpenAIMessage>> GetMessages(string threadId, string after = "", string before = "", int limit = 50)
+        public async Task<List<OpenAIMessage>> GetMessages(string threadId, string after = "", int limit = 50)
         {
             Console.WriteLine($"Retriving assistant message:");
-            string url = $"https://api.openai.com/v1/threads/{threadId}/messages?limit={limit}&order=asc";
+            string url = $"https://api.openai.com/v1/threads/{threadId}/messages?limit={limit}";
             if (!string.IsNullOrEmpty(after))
             {
-                url += $"&after={after}";
+                url += $"&before={after}";
             }
-            else if (!string.IsNullOrEmpty(before))
-            {
-                url += $"&before={before}";
-            }
+            
             var response = await _httpClient.GetFromJsonAsync<OpenAIMessageList>(url);
             if (response != null)
             {
@@ -277,8 +274,21 @@ namespace Kaizen.Entities
                 }
                 else if (openAIRun.status == "requires_action")
                 {
+                    Console.WriteLine("Calling tool");
+                    string toolResponse = "";
+                    switch (openAIRun.required_action.submit_tool_outputs.tool_calls[0].function.name)
+                    {
+                        case "handoverToHuman":
+                            toolResponse = await HandOverToHuman(threadId);
+                            Console.WriteLine("Tool response : "+toolResponse);
+                            break;
+                        default:
+                            
+                            break;
+                    }
+                    await SubmitToolOutput(threadId, openAIRun.id, openAIRun.required_action.submit_tool_outputs.tool_calls[0].id, toolResponse);
                     //openAIRun.required_action.submit_tool_outputs.tool_calls[0].function.name will give us the function name to be called and that function will always return a text.
-                    await SubmitToolOutput(threadId, openAIRun.id, openAIRun.required_action.submit_tool_outputs.tool_calls[0].id, "");
+                    
                 }
             }
 
@@ -288,5 +298,19 @@ namespace Kaizen.Entities
             return assistantMessage.content[0].text.value;
         }
 
+        public async Task<string> HandOverToHuman(string threadId)
+        {
+            string message = "";
+            try
+            {
+            var response= await   _httpClient.GetFromJsonAsync<APIGeneralResponse<bool>>($"https://kaizenchatbot.azurewebsites.net/api/HandoverToHuman/{threadId}?code=7Q7Uo9EsyC4jHnqocWFrwrYm-Cc94NHjHgYG4-wt2X_8AzFuHQ86RA==");
+                message = JsonSerializer.Serialize(response);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return message;
+        }
     }
 }

@@ -70,6 +70,14 @@ namespace Kaizen.Entities
             await collection.UpdateOneAsync(filter, update);
         }
 
+        public async Task UpdateThreadRecordAssistance(string threadId, bool assistance = false)
+        {
+            var collection = database.GetCollection<ThreadRecord>("Threads");
+            var filter = Builders<ThreadRecord>.Filter.Eq(x => x.ThreadId, threadId);
+            var update = Builders<ThreadRecord>.Update.Set(x => x.NeedsAssistance, assistance);
+            await collection.UpdateOneAsync(filter, update);
+        }
+
         public async Task UpdateThreadRecordActivity(string threadId)
         {
             var collection = database.GetCollection<ThreadRecord>("Threads");

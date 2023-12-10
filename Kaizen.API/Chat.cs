@@ -28,7 +28,7 @@ namespace Kaizen.API
         public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req)
         {
             _logger.LogInformation("C# HTTP trigger function processed a request.");
-            ServiceBusClient client = new ServiceBusClient(Environment.GetEnvironmentVariable("BAServiceBus"));
+            ServiceBusClient client = new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBus"));
             APIGeneralResponse<AIResponse> data = new APIGeneralResponse<AIResponse>();
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
@@ -109,6 +109,10 @@ namespace Kaizen.API
                     }
                 }
 
+                if (record.role == "agent")
+                {
+                   await _service.UpdateThreadRecordAssistance(record.ThreadId);
+                }
                 data.Data.ThreadId = record.ThreadId;
                 data.Data.UserMessage = record.content;
                 data.Status = true;
