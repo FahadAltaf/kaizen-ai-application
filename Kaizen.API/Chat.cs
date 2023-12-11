@@ -105,6 +105,7 @@ namespace Kaizen.API
                             {
                                 await _aiAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = record.AssistantId, Message = record.content, Thread_Id = record.ThreadId });
                             }
+                          await  _service.UpdateThreadRecordActivity(dbThread.ThreadId);
                         }
                     }
                 }

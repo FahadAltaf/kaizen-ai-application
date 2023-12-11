@@ -316,7 +316,7 @@
                 }
             }
 
-            messages = messages.OrderBy(x => x.createdAt).ToList();
+            messages = messages.Where(x=>!string.IsNullOrEmpty(x.id)).OrderBy(x => x.createdAt).ToList();
 
         }
         catch (Exception ex)
@@ -402,7 +402,7 @@
             {
                 var conversation = new
                 Conversations
-                    { content = text, role = "agent" };
+                    { createdAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(), content = text, role = "agent" };
                 conversation.metadata.Add("role", "agent");
                 messages.Add(conversation);
                 text = string.Empty;
@@ -420,7 +420,7 @@
                 if (response.IsSuccessStatusCode)
                 {
 
-                    //await LoadMessages(selectedThreadRecord.ThreadId);
+                    await LoadMessages(selectedThreadRecord.ThreadId,true);
 
                     // var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
                     // // Process the response here, e.g., display the message in the UI or clear the text field
