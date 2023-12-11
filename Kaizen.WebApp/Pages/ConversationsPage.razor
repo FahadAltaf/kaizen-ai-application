@@ -24,7 +24,7 @@
                     </svg>
                     <h3 class="mt-2 text-sm font-semibold text-gray-900">No Messages</h3>
                     <p class="mt-1 text-sm text-gray-500">There is no message of unable to fetch messages. Try to reload the conversation  </p>
-                    
+
                 </div>
 
             }
@@ -118,7 +118,7 @@
         {
             <LoadingComponent />
         }
-        else if (threads.Count ==0)
+        else if (threads.Count == 0)
         {
             <div class="text-center">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -148,16 +148,27 @@
                             <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-900">@thread.PlatformUserId</h3>
                             <div class="flex-none text-xs text-gray-500">
                                 <div class="mt-1 flex items-center gap-x-1.5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-                                    </svg>
+                                    @if ((DateTime.UtcNow - thread.LastActivityAt).TotalMinutes < 3)
+                                    {
+                                        <div class="flex-none rounded-full bg-emerald-500/20 p-1">
+                                            <div class="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
+                                        </div>
+                                        <p class="text-xs leading-5 text-gray-500">Online</p>
+                                    }
+                                    else
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                                        </svg>
 
-                                    <p class="text-xs leading-5 text-gray-500">Offline</p>
+                                        <p class="text-xs leading-5 text-gray-500">Offline</p>
+                                    }
+                                   
                                 </div>
                             </div>
                         </div>
                         <div class="flex items-center gap-x-3">
-                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">Last Activity at 5 min ago</h3>
+                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">Last Activity at @thread.LastActivityAt.Humanize()</h3>
                             <div class="flex-none text-xs text-gray-500">
                                 <div class="mt-1 flex items-center gap-x-1.5">
                                     @if (thread.AiMode)
@@ -237,7 +248,7 @@
 
                 if (selectedThreadRecord != null && selectedThreadRecord.ThreadId == parts[1])
                 {
-                    await LoadMessages(selectedThreadRecord.ThreadId,true);
+                    await LoadMessages(selectedThreadRecord.ThreadId, true);
                     await PlaySoundAsync(0);
 
                 }
@@ -286,7 +297,7 @@
             {
                 messages = new List<Conversations>();
             }
-            
+
             var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>((string.IsNullOrEmpty(after) || after == "none") ? $"api/Conversation/{threadId}/none?code={APICode}" : $"api/Conversation/{threadId}/{after}?code={APICode}");
 
             foreach (var message in response.Data)
@@ -448,7 +459,7 @@
             {
                 var response1 = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={APICode}");
                 threads = response1.Data;
-                await LoadMessages(selectedThreadRecord.ThreadId,true);
+                await LoadMessages(selectedThreadRecord.ThreadId, true);
             }
         }
         catch (Exception ex)
