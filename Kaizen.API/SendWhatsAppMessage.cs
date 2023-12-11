@@ -28,7 +28,7 @@ namespace Kaizen.API
                 if (!string.IsNullOrEmpty(data.Message))
                 {
                     //Change this based on from
-                    var url = "https://graph.facebook.com/v17.0/133908173119659/messages";
+                    var url = "https://graph.facebook.com/v18.0/193557653834811/messages";
                     var token = Environment.GetEnvironmentVariable("MetaKey");
                     var contentType = "application/json";
                     var payload = new StringContent(
