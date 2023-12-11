@@ -135,7 +135,7 @@
             {
                 <li class="p-4  @((selectedThreadRecord!=null && selectedThreadRecord.Id==thread.Id)?"force-border":"hover:bg-gray-100 hover:rounded")">
 
-                    <a href="javascript:void(0)" @onclick="(async ()=>await LoadMessages(thread.ThreadId))">
+                    <a href="javascript:void(0)" @onclick="(async ()=>await LoadMessages(thread.ThreadId,false))">
                         <div class="flex items-center gap-x-3">
                             @if (thread.NeedsAssistance)
                             {
@@ -237,13 +237,13 @@
 
                 if (selectedThreadRecord != null && selectedThreadRecord.ThreadId == parts[1])
                 {
-                    await LoadMessages(selectedThreadRecord.ThreadId);
+                    await LoadMessages(selectedThreadRecord.ThreadId,true);
                     await PlaySoundAsync(0);
 
                 }
                 if (!threads.Exists(x => x.ThreadId == parts[1]))
                 {
-                    LoadThreads();
+                    await LoadThreads();
                 }
 
                 break;
@@ -266,7 +266,7 @@
     }
 
 
-    async Task LoadMessages(string threadId)
+    async Task LoadMessages(string threadId, bool loadMore)
     {
         try
         {
@@ -278,7 +278,7 @@
             {
                 messages = new List<Conversations>();
             }
-            else
+            if(loadMore)
             {
                 after = messages.LastOrDefault().id;
             }
@@ -443,7 +443,7 @@
             {
                 var response1 = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={APICode}");
                 threads = response1.Data;
-                await LoadMessages(selectedThreadRecord.ThreadId);
+                await LoadMessages(selectedThreadRecord.ThreadId,true);
             }
         }
         catch (Exception ex)
