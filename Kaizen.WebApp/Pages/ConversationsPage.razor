@@ -274,14 +274,19 @@
             selectedThreadRecord = threads.FirstOrDefault(x => x.ThreadId == threadId);
             StateHasChanged();
             string after = "none";
+            if (loadMore)
+            {
+                after = messages.LastOrDefault().id;
+            }
+            else
+            {
+                messages = null;
+            }
             if (messages == null)
             {
                 messages = new List<Conversations>();
             }
-            if(loadMore)
-            {
-                after = messages.LastOrDefault().id;
-            }
+            
             var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>((string.IsNullOrEmpty(after) || after == "none") ? $"api/Conversation/{threadId}/none?code={APICode}" : $"api/Conversation/{threadId}/{after}?code={APICode}");
 
             foreach (var message in response.Data)
