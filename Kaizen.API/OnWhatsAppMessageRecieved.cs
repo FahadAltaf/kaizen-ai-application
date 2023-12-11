@@ -154,6 +154,7 @@ namespace Kaizen.API
                                 await _whatsAppService.SendWhatsAppMessage(new SendMessageBody { From = number, Message = aiMessage, To = from });
                                 await _webPubSubService.MessageRecieved(aiThread);
                             }
+                            data.Status =data.Data= true;
                         }
                         else
                         {

@@ -234,11 +234,16 @@
         switch (parts[0])
         {
             case "messageRecieved":
+
                 if (selectedThreadRecord != null && selectedThreadRecord.ThreadId == parts[1])
                 {
                     await LoadMessages(selectedThreadRecord.ThreadId);
                     await PlaySoundAsync(0);
 
+                }
+                if (!threads.Exists(x => x.ThreadId == parts[1]))
+                {
+                    LoadThreads();
                 }
 
                 break;
