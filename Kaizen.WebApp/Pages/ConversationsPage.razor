@@ -261,10 +261,9 @@
                     await PlaySoundAsync(0);
 
                 }
-                if (!threads.Exists(x => x.ThreadId == parts[1]))
-                {
-                    await LoadThreads();
-                }
+               
+                    _= LoadThreads();
+                
 
                 break;
             case "needAssistance":
