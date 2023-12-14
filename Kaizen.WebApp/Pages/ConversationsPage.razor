@@ -134,7 +134,7 @@
         }
         else
         {
-            foreach (var thread in threads)
+            foreach (var thread in threads.OrderByDescending(x => x.LastActivityAt))
             {
                 <li class="p-4  @((selectedThreadRecord!=null && selectedThreadRecord.Id==thread.Id)?"force-border":"hover:bg-gray-100 hover:rounded")">
 
@@ -261,22 +261,14 @@
                     await PlaySoundAsync(0);
 
                 }
-               
-                    _= LoadThreads();
-                
-
                 break;
             case "needAssistance":
-
-                await LoadThreads();
                 await PlaySoundAsync(1);
-
-
-
                 break;
             default:
                 break;
         }
+        _ = LoadThreads();
     }
 
     private async Task PlaySoundAsync(int val)
@@ -365,7 +357,7 @@
         try
         {
             var response = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={APICode}");
-            threads = response.Data.OrderByDescending(x => x.LastActivityAt).ToList();
+            threads = response.Data.ToList();
         }
         catch (Exception ex)
         {
