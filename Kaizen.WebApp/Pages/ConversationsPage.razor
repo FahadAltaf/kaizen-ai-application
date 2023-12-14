@@ -151,7 +151,7 @@
                             <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-900">@thread.PlatformUserId</h3>
                             <div class="flex-none text-xs text-gray-500">
                                 <div class="mt-1 flex items-center gap-x-1.5">
-                                    @if ((DateTime.UtcNow - thread.LastActivityAt).TotalMinutes < 3)
+                                    @if ((DateTime.UtcNow - thread.LastActivityAt).TotalMinutes < 15)
                                     {
                                         <div class="flex-none rounded-full bg-emerald-500/20 p-1">
                                             <div class="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
