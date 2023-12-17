@@ -389,6 +389,17 @@ namespace Kaizen.Entities
         public string Message { get; set; }
     }
 
+    public class ProcessMessageModel
+    {
+        public string aiMessage { get; set; }
+        public string aiThread { get; set; }
+        public string message { get; set; }
+        public string from { get; set; }
+
+        public string number { get; set; }
+
+    }
+
     public enum ConversationPlatform
     {
         Website,
