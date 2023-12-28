@@ -29,6 +29,42 @@
     <script src="_framework/blazor.webassembly.js"></script>
     <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script>
+        function GetUrl() {
+            var myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer EAAMUZADUs6M4BO10RURA9urY500LrBCTR8HVXDdpFwPnZBt2nQMDwvkQ7nS81bzuj4ANASAtLY5bpdmcpLhyHu7UdkuGvB7BiusRY1YiZAYwRQZBIQU6iuClpDXVePhUASWZAysZB4MJ3BfulYBnvEAnTZBvttDVvMnDHnUKEQH1ZAwW68IY8XP9MyTTucpS73tC");
+
+            var requestOptions = {
+                method: 'GET',
+                headers: myHeaders,
+                redirect: 'follow'
+            };
+
+            fetch("https://graph.facebook.com/v18.0/1583555272051410", requestOptions)
+                .then(response => response.text())
+                .then(result => {
+                    var obj = JSON.parse(result);
+                    console.log(obj.url);
+                    GetImage(obj.url);
+                })
+                .catch(error => console.log('error', error));
+
+        }
+
+        function GetImage(url) {
+            var myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer EAAMUZADUs6M4BO10RURA9urY500LrBCTR8HVXDdpFwPnZBt2nQMDwvkQ7nS81bzuj4ANASAtLY5bpdmcpLhyHu7UdkuGvB7BiusRY1YiZAYwRQZBIQU6iuClpDXVePhUASWZAysZB4MJ3BfulYBnvEAnTZBvttDVvMnDHnUKEQH1ZAwW68IY8XP9MyTTucpS73tC");
+
+            var requestOptions = {
+                method: 'GET',
+                headers: myHeaders,
+                redirect: 'follow'
+            };
+
+            fetch(url, requestOptions)
+                .then(response => response.text())
+                .then(result => console.log(result))
+                .catch(error => console.log('error', error));
+        }
         function scrollToBottom(element) {
             console.log("scrolling...")
             if (element.scrollHeight > element.clientHeight) {

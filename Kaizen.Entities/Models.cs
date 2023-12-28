@@ -319,6 +319,15 @@ namespace Kaizen.Entities
         public FbText text { get; set; }
         public string type { get; set; }
         public Document document { get; set; }
+        public Image image { get; set; }
+    }
+
+    public class Image
+    {
+        public string caption { get; set; }
+        public string mime_type { get; set; }
+        public string sha256 { get; set; }
+        public string id { get; set; }
     }
 
     public class FbMetadata
@@ -381,6 +390,7 @@ namespace Kaizen.Entities
         public string Message { get; set; }
         public string Thread_Id { get; set; }
         public string Assistant_Id { get; set; }
+        public string docId { get; set; }
     }
     public class SendMessageBody
     {
@@ -395,10 +405,22 @@ namespace Kaizen.Entities
         public string aiThread { get; set; }
         public string message { get; set; }
         public string from { get; set; }
-
+        public string name { get; set; }
         public string number { get; set; }
+        public string docId { get; set; }
 
     }
+
+    public class FbMediaModel
+    {
+        public string url { get; set; }
+        public string mime_type { get; set; }
+        public string sha256 { get; set; }
+        public int file_size { get; set; }
+        public string id { get; set; }
+        public string messaging_product { get; set; }
+    }
+
 
     public enum ConversationPlatform
     {
@@ -421,6 +443,7 @@ namespace Kaizen.Entities
         public string PlatformUserId { get; set; }
         public bool AiMode { get; set; }
         public DateTime LastActivityAt { get; set; }
+        public string Alias { get; set; }
         public bool NeedsAssistance { get; set; }
         public bool HasNewMessages { get; set; }
     }

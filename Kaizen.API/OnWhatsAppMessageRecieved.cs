@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using Azure.Messaging.ServiceBus;
@@ -17,6 +18,7 @@ namespace Kaizen.API
         private readonly DataService _dataService;
         private readonly WhatsAppService _whatsAppService; // New Service
         private readonly IWebPubSubService _webPubSubService;
+        private readonly HttpClient _httpClient;
         public OnWhatsAppMessageRecieved(
             ILoggerFactory loggerFactory,
             AIAssistant aIAssistant,
@@ -29,6 +31,8 @@ namespace Kaizen.API
             _dataService = dataService;
             _whatsAppService = whatsAppService;
             _webPubSubService = webPubSubService;
+            _httpClient = new HttpClient();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {Environment.GetEnvironmentVariable("MetaKey")}");
         }
 
         [Function("OnWhatsAppMessageReceived")]
@@ -74,32 +78,75 @@ namespace Kaizen.API
                 string message = string.Empty;
                 string from = string.Empty;
                 string number = string.Empty;
-
+                string contactName = "";
                 var root = await req.ReadFromJsonAsync<MetaWebhookModel>();
                 _logger.LogWarning("Received payload: {Payload}", JsonSerializer.Serialize(root));
 
 
                 // Extract message details from the payload
-                switch (root.entry[0].changes[0].value.messages[0].type)
-                {
-                    case "text":
-                        message = root.entry[0].changes[0].value.messages[0].text.body;
-                        from = root.entry[0].changes[0].value.messages[0].from;
-                        number = root.entry[0].changes[0].value.metadata.display_phone_number;
+                ServiceBusClient client = new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBus"));
+                if (root.entry[0].changes[0].value.messages.Count > 0)
+                    switch (root.entry[0].changes[0].value.messages[0].type)
+                    {
+                        case "text":
+                            message = root.entry[0].changes[0].value.messages[0].text.body;
+                            from = root.entry[0].changes[0].value.messages[0].from;
+                            number = root.entry[0].changes[0].value.metadata.display_phone_number;
+                           
+                            var contact = root.entry[0].changes[0].value.contacts;
+                            if (contact.Count > 0)
+                            {
+                                contactName = contact[0].profile.name;
+                            }
+                            if (!string.IsNullOrEmpty(message))
+                            {
 
-                        if (!string.IsNullOrEmpty(message))
-                        {
-                            ServiceBusClient client = new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBus"));
-                            var createThreadRequest = client.CreateSender("process-message");
-                            await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ProcessMessageModel {
-                              aiMessage=aiMessage, aiThread=aiThread, message=message, from = from, number=number
-                            })));
-                        }
-                        
-                        break;
-                    default:
-                        break;
-                }
+                                var createThreadRequest = client.CreateSender("process-message");
+                                await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ProcessMessageModel
+                                {
+                                    aiMessage = aiMessage,
+                                    aiThread = aiThread,
+                                    message = message,
+                                    from = from,
+                                    number = number,
+                                    name = contactName
+                                })));
+                            }
+
+                            break;
+                        case "image":
+                           
+                            from = root.entry[0].changes[0].value.messages[0].from;
+                            number = root.entry[0].changes[0].value.metadata.display_phone_number;
+                           
+                            var contactx = root.entry[0].changes[0].value.contacts;
+                            if (contactx.Count > 0)
+                            {
+                                contactName = contactx[0].profile.name;
+                            }
+                            var imgId = root.entry[0].changes[0].value.messages[0].image.id;
+                            message = string.IsNullOrEmpty(root.entry[0].changes[0].value.messages[0].image.caption) ? "Media Recieved" : root.entry[0].changes[0].value.messages[0].image.caption;
+                            if (!string.IsNullOrEmpty(imgId))
+                            {
+                                _logger.LogWarning("Image id: " + imgId);
+                                var createThreadRequest = client.CreateSender("process-media");
+                                await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ProcessMessageModel
+                                {
+                                    aiMessage = aiMessage,
+                                    aiThread = aiThread,
+                                    message = message,
+                                    from = from,
+                                    number = number,
+                                    docId = imgId
+                                })));
+                            }
+
+                            
+
+                            break;
+                        default:
+                            break;
+                    }
                 data.Status = true; data.Data = true;
 
             }

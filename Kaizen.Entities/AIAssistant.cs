@@ -143,6 +143,10 @@ namespace Kaizen.Entities
             {
                 Dictionary<string, string> metadata = new Dictionary<string, string> { };
                 metadata.Add("role", role);
+                if (!string.IsNullOrEmpty(request.docId))
+                {
+                    metadata.Add("url", request.docId);
+                }
                 Console.WriteLine($"Adding message to thread: {request.Thread_Id}");
                 var response = await _httpClient.PostAsJsonAsync<MessageBody>($"https://api.openai.com/v1/threads/{request.Thread_Id}/messages", new MessageBody { content = request.Message, metadata = metadata });
                 if (response.IsSuccessStatusCode)

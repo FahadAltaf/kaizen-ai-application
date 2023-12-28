@@ -65,7 +65,7 @@ namespace Kaizen.API
                         Platform = ConversationPlatform.WhatsApp,
                         PlatformUserId = data.from,
                         ThreadId = openAiThread.id,
-                        LastActivityAt = DateTime.UtcNow
+                        LastActivityAt = DateTime.UtcNow, Alias= data.name
                     })));
 
                     // Get AI response for the new thread
