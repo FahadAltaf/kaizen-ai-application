@@ -137,7 +137,7 @@ namespace Kaizen.API
                                     message = message,
                                     from = from,
                                     number = number,
-                                    docId = imgId
+                                    docId = imgId, name=contactName
                                 })));
                             }
 

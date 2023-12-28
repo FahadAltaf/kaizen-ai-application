@@ -22,38 +22,19 @@ namespace Kaizen.Entities
 
         public async Task<string> DownloadMediaAndUploadToBlobAsync(string mediaUrl, string type, string containerName, string blobName)
         {
-            _httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue
-            {
-                NoCache = true,
-                NoStore = true,
-                MustRevalidate = true
-            };
             // Download media from the URL
             var request = new HttpRequestMessage(HttpMethod.Get, mediaUrl);
             // Add your authorization headers
             request.Headers.Add("Authorization", $"Bearer {Environment.GetEnvironmentVariable("MetaKey")}");
-           
+            request.Headers.Add("User-Agent", "PostmanRuntime/7.36.0");
             var response = await _httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             // Get a reference to a container and then a blob
             var container = _blobServiceClient.GetBlobContainerClient(containerName);
             var blob = container.GetBlobClient(blobName);
-            using (var contentStream = await response.Content.ReadAsStreamAsync())
-            {
-                // Save the stream to a local file
-            
-                    await blob.UploadAsync(contentStream, new BlobHttpHeaders { ContentType = type });
-                
-            }
-            
 
-            // Upload the content to the blob
-         
-
-            // Optionally set the blob to be publicly accessible
-            //await container.SetAccessPolicyAsync(PublicAccessType.Blob);
-
+            await blob.UploadAsync(await response.Content.ReadAsStreamAsync(), new BlobHttpHeaders { ContentType = type });
             // Return the public URL of the blob
             return blob.Uri.ToString();
         }

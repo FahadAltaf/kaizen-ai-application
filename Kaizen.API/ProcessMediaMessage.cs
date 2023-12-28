@@ -48,100 +48,73 @@ namespace Kaizen.API
                     {
                         //Download the media
                         BlobStorageService service = new BlobStorageService(new Azure.Storage.Blobs.BlobServiceClient(Environment.GetEnvironmentVariable("StorageKey")), _httpClient);
-                        var fileName = $"{media.id}.{media.mime_type.Split("/").LastOrDefault()}";
+                        var fileName = $"{media.id}.{GetFileExtensionFromMimeType(media.mime_type)}";
                         _logger.LogInformation(fileName);
+                     data.docId=   await service.DownloadMediaAndUploadToBlobAsync(media.url, media.mime_type, "kaizen-media", fileName);
+                        _logger.LogWarning(data.docId);
+                        // Retrieve Assistant ID linked with the platform
+                        var assistantId = await _dataService.GetAssistantLinkedWithPlatform(data.number, ConversationPlatform.WhatsApp);
 
-
-                        var response = await _httpClient.GetAsync(media.url);
-                        if (!response.IsSuccessStatusCode)
+                        // Check if a thread exists against the ID and platform
+                        var thread = await _dataService.ThreadExistsInDatabaseAgainstIdAndPlatform(assistantId, data.from);
+                        if (thread == null)
                         {
-                            _logger.LogError($"Failed to download media: {response.ReasonPhrase}");
-                            
+                            ServiceBusClient client = new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBus"));
+                            // Handle the case where the thread does not exist
+                            // Create thread metadata and a new thread record
+                            var metadata = new Dictionary<string, string>
+                            {
+                                ["AssistantId"] = assistantId,
+                                ["Platform"] = Enum.GetName(typeof(ConversationPlatform), ConversationPlatform.WhatsApp),
+                                ["PlatformUserId"] = data.from
+                            };
+
+                            var openAiThread = await _aIAssistant.CreateThread(assistantId, metadata);
+
+                            // Send the thread record to the service bus for processing
+                            var createThreadRequest = client.CreateSender("create-thread-record");
+                            await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord
+                            {
+                                AiMode = true,
+                                AssistantId = assistantId,
+                                Platform = ConversationPlatform.WhatsApp,
+                                PlatformUserId = data.from,
+                                ThreadId = openAiThread.id,
+                                LastActivityAt = DateTime.UtcNow,
+                                Alias = data.name
+                            })));
+
+                            // Get AI response for the new thread
+                            await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = openAiThread.id, docId = data.docId });
+                            await _webPubSubService.MessageRecieved(openAiThread.id);
+
+                            data.aiMessage = "";//await _aIAssistant.GetAIResponse(assistantId, openAiThread.id);
+                            data.aiThread = openAiThread.id;
                         }
                         else
                         {
-                            var blobServiceClient = new BlobServiceClient(Environment.GetEnvironmentVariable("StorageKey"));
-                            var blobContainerClient = blobServiceClient.GetBlobContainerClient("kaizen-media");
-                            var blobClient = blobContainerClient.GetBlobClient($"{media.id}.{media.mime_type.Split("/").LastOrDefault()}"); // Update the file extension based on media type
-
-                            using (var stream = await response.Content.ReadAsStreamAsync())
+                            await _dataService.UpdateThreadRecordActivity(thread.ThreadId);
+                            // Handle existing thread
+                            if (thread.AiMode)
                             {
-                                await blobClient.UploadAsync(stream, true);
-                                data.docId = blobClient.Uri.AbsoluteUri;
-                            }
-
-
-
-
-                            _logger.LogWarning(data.docId);
-                            // Retrieve Assistant ID linked with the platform
-                            var assistantId = await _dataService.GetAssistantLinkedWithPlatform(data.number, ConversationPlatform.WhatsApp);
-
-                            // Check if a thread exists against the ID and platform
-                            var thread = await _dataService.ThreadExistsInDatabaseAgainstIdAndPlatform(assistantId, data.from);
-                            if (thread == null)
-                            {
-                                ServiceBusClient client = new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBus"));
-                                // Handle the case where the thread does not exist
-                                // Create thread metadata and a new thread record
-                                var metadata = new Dictionary<string, string>
-                                {
-                                    ["AssistantId"] = assistantId,
-                                    ["Platform"] = Enum.GetName(typeof(ConversationPlatform), ConversationPlatform.WhatsApp),
-                                    ["PlatformUserId"] = data.from
-                                };
-
-                                var openAiThread = await _aIAssistant.CreateThread(assistantId, metadata);
-
-                                // Send the thread record to the service bus for processing
-                                var createThreadRequest = client.CreateSender("create-thread-record");
-                                await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord
-                                {
-                                    AiMode = true,
-                                    AssistantId = assistantId,
-                                    Platform = ConversationPlatform.WhatsApp,
-                                    PlatformUserId = data.from,
-                                    ThreadId = openAiThread.id,
-                                    LastActivityAt = DateTime.UtcNow,
-                                    Alias = data.name
-                                })));
-
-                                // Get AI response for the new thread
-                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = openAiThread.id, docId = data.docId });
-                                await _webPubSubService.MessageRecieved(openAiThread.id);
-
-                                data.aiMessage = "";//await _aIAssistant.GetAIResponse(assistantId, openAiThread.id);
-                                data.aiThread = openAiThread.id;
+                                // Get AI response if in AI mode
+                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = thread.ThreadId, docId = data.docId });
+                                await _webPubSubService.MessageRecieved(thread.ThreadId);
+                                //data.aiMessage = await _aIAssistant.GetAIResponse(thread.AssistantId, thread.ThreadId);
+                                data.aiThread = thread.ThreadId;
                             }
                             else
                             {
-                                await _dataService.UpdateThreadRecordActivity(thread.ThreadId);
-                                // Handle existing thread
-                                if (thread.AiMode)
-                                {
-                                    // Get AI response if in AI mode
-                                    await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = thread.ThreadId, docId = data.docId });
-                                    await _webPubSubService.MessageRecieved(thread.ThreadId);
-                                    //data.aiMessage = await _aIAssistant.GetAIResponse(thread.AssistantId, thread.ThreadId);
-                                    data.aiThread = thread.ThreadId;
-                                }
-                                else
-                                {
-                                    // Add message to thread if not in AI mode
-                                    await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId });
-                                    await _webPubSubService.MessageRecieved(thread.ThreadId);
-                                }
+                                // Add message to thread if not in AI mode
+                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId });
+                                await _webPubSubService.MessageRecieved(thread.ThreadId);
                             }
                         }
-
-                        
                     }
                     else
                     {
                         _logger.LogWarning("No media id.");
                     }
-
-
                 }
                 else
                 {
@@ -153,6 +126,18 @@ namespace Kaizen.API
                 _logger.LogError(ex.Message);
             }
 
+        }
+
+        string GetFileExtensionFromMimeType(string mimeType)
+        {
+            switch (mimeType)
+            {
+                case "image/jpeg":
+                    return ".jpg";
+                // Add other MIME types and corresponding extensions
+                default:
+                    return "";
+            }
         }
     }
 }
