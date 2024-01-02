@@ -86,6 +86,15 @@ namespace Kaizen.Entities
             await collection.UpdateOneAsync(filter, update);
         }
 
+        public async Task<ThreadRecord> UpdateThread(ThreadRecord record)
+        {
+            var collection = database.GetCollection<ThreadRecord>("Threads");
+            var filter = Builders<ThreadRecord>.Filter.Eq(x => x.Id, record.Id);
+            var update = Builders<ThreadRecord>.Update.Set(x => x.Alias, record.Alias);
+            await collection.UpdateOneAsync(filter, update);
+            return record;
+        }
+
         public async Task<List<ThreadRecord>> AssistantThreads(string assistantId)
         {
             if (string.IsNullOrEmpty(assistantId))
@@ -94,6 +103,15 @@ namespace Kaizen.Entities
             var filter = Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId);
             return await collection.Find(filter).ToListAsync();
         }
+
+        public async Task<List<ThreadRecord>> AllThreads()
+        {
+           
+            var collection = database.GetCollection<ThreadRecord>("Threads");
+
+            return await collection.Find(_=>true).ToListAsync();
+        }
+
         public async Task<ThreadRecord> ThreadRecord(string assistantId, string threadId)
         {
             var collection = database.GetCollection<ThreadRecord>("Threads");
