@@ -438,9 +438,7 @@
                     { createdAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(), content = text, role = "agent" };
                 conversation.metadata.Add("role", "agent");
                 messages.Add(conversation);
-                text = string.Empty;
-                await ScrollToBottom();
-                StateHasChanged();
+               
 
                 var response = await client.PostAsJsonAsync($"api/Chat?code={APICode}", new ConversationModel
 
@@ -452,7 +450,7 @@
                     });
                 if (response.IsSuccessStatusCode)
                 {
-
+                    text = string.Empty;
                     await LoadMessages(selectedThreadRecord.ThreadId, true);
 
                     // var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
