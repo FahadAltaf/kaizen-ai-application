@@ -55,12 +55,12 @@ namespace Kaizen.API
                     };
 
                     var openAiThread = await _aIAssistant.CreateThread(assistantId, metadata);
-                    bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/") || data.message.Contains("https://www.dubizzle.com/") || data.message.Contains("https://www.bayut.com/"));
+                    bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/to") || data.message.Contains("https://dubizzle.com/s") || data.message.Contains("https://www.bayut.com/pm"));
                     // Send the thread record to the service bus for processing
                     var createThreadRequest = client.CreateSender("create-thread-record");
                     await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord
                     {
-                        AiMode = true,
+                        AiMode =(isLeasing)?false: true,
                         AssistantId = assistantId,
                         Platform = ConversationPlatform.WhatsApp,
                         PlatformUserId = data.from,
@@ -75,7 +75,7 @@ namespace Kaizen.API
                     await _webPubSubService.MessageRecieved(openAiThread.id);
                     if (isLeasing)
                     {
-
+                        await Task.Delay(1000);
                         data.aiMessage =IsOfficeHours(_logger)? "Hello! Welcome to Kaizen. Thank you for your interest in our property. I have forwarded your question to one of our agents. Someone will be soon in contact with you."
                             : "Hello,\r\nThank you for reaching out to us! Our office hours are from 9 am to 6 pm, Monday to Saturday. Please note that our team is currently away. Rest assured, your message is important to us. The concerned person will reach out to you on the next working day.\r\nThank you for your understanding.";
                         await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.aiMessage, Thread_Id = openAiThread.id }, "assistant");
@@ -89,7 +89,7 @@ namespace Kaizen.API
                 }
                 else
                 {
-                    bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/") || data.message.Contains("https://www.dubizzle.com/") || data.message.Contains("https://www.bayut.com/"));
+                    bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/to") || data.message.Contains("https://dubizzle.com/s") || data.message.Contains("https://www.bayut.com/pm"));
                     await _dataService.UpdateThreadRecordActivity(thread.ThreadId);
                     // Handle existing thread
                     if (thread.AiMode)

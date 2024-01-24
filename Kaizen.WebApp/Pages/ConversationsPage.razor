@@ -500,7 +500,7 @@
             var response = await client.GetFromJsonAsync<APIGeneralResponse<ThreadRecord>>($"api/AsRead/{selectedThreadRecord.ThreadId}/false?code={APICode}");
             if (response.Status)
             {
-                selectedThreadRecord = response.Data;
+                selectedThreadRecord.HasNewMessages = false;
             }
         }
         catch (Exception ex)
