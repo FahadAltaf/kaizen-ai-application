@@ -158,8 +158,8 @@ namespace Kaizen.API
                     using var client = new HttpClient();
                     client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                    await client.PostAsync(url, payload);
-                    _logger.LogWarning("WhatsApp message has been sent");
+                  var response =  await client.PostAsync(url, payload);
+                    _logger.LogWarning("WhatsApp response"+await response.Content.ReadAsStringAsync());
                 }
             }
             catch (Exception ex)

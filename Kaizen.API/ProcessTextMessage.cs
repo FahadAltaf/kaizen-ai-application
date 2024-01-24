@@ -34,7 +34,7 @@ namespace Kaizen.API
         [Function(nameof(ProcessTextMessage))]
         public async Task Run([ServiceBusTrigger("process-message", Connection = "ServiceBus")] ServiceBusReceivedMessage message)
         {
-            var data = JsonSerializer.Deserialize<ProcessMessageModel>(message.Body); 
+            var data = JsonSerializer.Deserialize<ProcessMessageModel>(message.Body);
             if (!string.IsNullOrEmpty(data.message))
             {
                 // Retrieve Assistant ID linked with the platform
@@ -55,7 +55,7 @@ namespace Kaizen.API
                     };
 
                     var openAiThread = await _aIAssistant.CreateThread(assistantId, metadata);
-
+                    bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/") || data.message.Contains("https://www.dubizzle.com/") || data.message.Contains("https://www.bayut.com/"));
                     // Send the thread record to the service bus for processing
                     var createThreadRequest = client.CreateSender("create-thread-record");
                     await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord
@@ -65,18 +65,31 @@ namespace Kaizen.API
                         Platform = ConversationPlatform.WhatsApp,
                         PlatformUserId = data.from,
                         ThreadId = openAiThread.id,
-                        LastActivityAt = DateTime.UtcNow, Alias= data.name
+                        LastActivityAt = DateTime.UtcNow,
+                        Alias = data.name,
+                        IsLeasing = isLeasing,
                     })));
 
                     // Get AI response for the new thread
-                    await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message =data. message, Thread_Id = openAiThread.id });
+                    await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = openAiThread.id });
                     await _webPubSubService.MessageRecieved(openAiThread.id);
+                    if (isLeasing)
+                    {
 
-                    data.aiMessage = await _aIAssistant.GetAIResponse(assistantId, openAiThread.id);
+                        data.aiMessage =IsOfficeHours(_logger)? "Hello! Welcome to Kaizen. Thank you for your interest in our property. I have forwarded your question to one of our agents. Someone will be soon in contact with you."
+                            : "Hello,\r\nThank you for reaching out to us! Our office hours are from 9 am to 6 pm, Monday to Saturday. Please note that our team is currently away. Rest assured, your message is important to us. The concerned person will reach out to you on the next working day.\r\nThank you for your understanding.";
+                        await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.aiMessage, Thread_Id = openAiThread.id }, "assistant");
+                    }
+                    else
+                    {
+                        data.aiMessage =   await _aIAssistant.GetAIResponse(assistantId, openAiThread.id);
+                    }
+                   
                     data.aiThread = openAiThread.id;
                 }
                 else
                 {
+                    bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/") || data.message.Contains("https://www.dubizzle.com/") || data.message.Contains("https://www.bayut.com/"));
                     await _dataService.UpdateThreadRecordActivity(thread.ThreadId);
                     // Handle existing thread
                     if (thread.AiMode)
@@ -84,13 +97,28 @@ namespace Kaizen.API
                         // Get AI response if in AI mode
                         await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = thread.ThreadId });
                         await _webPubSubService.MessageRecieved(thread.ThreadId);
-                        data.aiMessage = await _aIAssistant.GetAIResponse(thread.AssistantId, thread.ThreadId);
+                        if (isLeasing)
+                        {
+                            data.aiMessage = IsOfficeHours(_logger) ? "Hello! Welcome to Kaizen. Thank you for your interest in our property. I have forwarded your question to one of our agents. Someone will be soon in contact with you."
+                            : "Hello,\r\nThank you for reaching out to us! Our office hours are from 9 am to 6 pm, Monday to Saturday. Please note that our team is currently away. Rest assured, your message is important to us. The concerned person will reach out to you on the next working day.\r\nThank you for your understanding.";
+                            await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.aiMessage, Thread_Id = thread.ThreadId }, "assistant");
+                        }
+                        else
+                        {
+                            if (!thread.IsLeasing)
+                            {
+                                data.aiMessage = await _aIAssistant.GetAIResponse(thread.AssistantId, thread.ThreadId);
+                            }
+                          
+                        }
+
                         data.aiThread = thread.ThreadId;
                     }
                     else
                     {
                         // Add message to thread if not in AI mode
                         await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId });
+                        await _dataService.UpdateThreadHasMessages(thread.ThreadId, true);
                         await _webPubSubService.MessageRecieved(thread.ThreadId);
                     }
                 }
@@ -108,6 +136,18 @@ namespace Kaizen.API
                 _logger.LogWarning("No content for processing found in the request.");
             }
         }
-
+        public static bool IsOfficeHours( ILogger logger)
+        {
+            DateTime utcDateTime = DateTime.UtcNow;
+            TimeZoneInfo dubaiTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Arabian Standard Time");
+            DateTime dubaiTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, dubaiTimeZone);
+            logger.LogWarning("Dubai time: " + dubaiTime.ToString("yyyy-MM-dd HH:mm:ss"));
+            if (dubaiTime.Hour >= 9 && dubaiTime.Hour <= 18)
+            {
+                return (dubaiTime.DayOfWeek == DayOfWeek.Sunday) ? false : true;
+            }
+            else
+                return false;
+        }
     }
 }

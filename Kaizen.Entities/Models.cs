@@ -445,7 +445,10 @@ namespace Kaizen.Entities
         public DateTime LastActivityAt { get; set; }
         public string Alias { get; set; }
         public bool NeedsAssistance { get; set; }
+        public bool IsLeasing { get; set; }
         public bool HasNewMessages { get; set; }
+        public bool Visible { get; set; } = true;
+        public bool Deleted { get; set; }
     }
 
     public class AssistantRecord

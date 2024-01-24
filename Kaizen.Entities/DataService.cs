@@ -70,6 +70,14 @@ namespace Kaizen.Entities
             await collection.UpdateOneAsync(filter, update);
         }
 
+        public async Task UpdateThreadHasMessages(string threadId, bool aimode)
+        {
+            var collection = database.GetCollection<ThreadRecord>("Threads");
+            var filter = Builders<ThreadRecord>.Filter.Eq(x => x.ThreadId, threadId);
+            var update = Builders<ThreadRecord>.Update.Set(x => x.HasNewMessages, aimode);
+            await collection.UpdateOneAsync(filter, update);
+        }
+
         public async Task UpdateThreadRecordAssistance(string threadId, bool assistance = false)
         {
             var collection = database.GetCollection<ThreadRecord>("Threads");
@@ -77,6 +85,14 @@ namespace Kaizen.Entities
             var update = Builders<ThreadRecord>.Update.Set(x => x.NeedsAssistance, assistance);
             await collection.UpdateOneAsync(filter, update);
         }
+
+        //public async Task UpdateThreadRecordInquiry(string threadId, bool assistance = false)
+        //{
+        //    var collection = database.GetCollection<ThreadRecord>("Threads");
+        //    var filter = Builders<ThreadRecord>.Filter.Eq(x => x.ThreadId, threadId);
+        //    var update = Builders<ThreadRecord>.Update.Set(x => x.IsInquiry, assistance);
+        //    await collection.UpdateOneAsync(filter, update);
+        //}
 
         public async Task UpdateThreadRecordActivity(string threadId)
         {
@@ -90,7 +106,7 @@ namespace Kaizen.Entities
         {
             var collection = database.GetCollection<ThreadRecord>("Threads");
             var filter = Builders<ThreadRecord>.Filter.Eq(x => x.Id, record.Id);
-            var update = Builders<ThreadRecord>.Update.Set(x => x.Alias, record.Alias);
+            var update = Builders<ThreadRecord>.Update.Set(x => x.Alias, record.Alias).Set(x => x.Visible, record.Visible).Set(x => x.Deleted, record.Deleted);
             await collection.UpdateOneAsync(filter, update);
             return record;
         }
@@ -100,7 +116,21 @@ namespace Kaizen.Entities
             if (string.IsNullOrEmpty(assistantId))
                 throw new Exception("AI assistant id is not provided");
             var collection = database.GetCollection<ThreadRecord>("Threads");
-            var filter = Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId);
+            var filter = Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.Deleted, false);
+            var all = await collection.Find(filter).ToListAsync();
+            var groups = all.GroupBy(x => x.PlatformUserId);
+            foreach (var item in groups)
+            {
+                if (item.Count() > 1)
+                {
+                    foreach (var th in item.OrderByDescending(x=>x.LastActivityAt).Skip(1))
+                    {
+                        th.Deleted = true;
+                        th.Visible = false;
+                       await UpdateThread(th);
+                    }
+                }
+            }
             return await collection.Find(filter).ToListAsync();
         }
 
@@ -116,6 +146,13 @@ namespace Kaizen.Entities
         {
             var collection = database.GetCollection<ThreadRecord>("Threads");
             var filter = Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.ThreadId, threadId);
+            return await collection.Find(filter).FirstOrDefaultAsync();
+        }
+
+        public async Task<ThreadRecord> ThreadRecord(string threadId)
+        {
+            var collection = database.GetCollection<ThreadRecord>("Threads");
+            var filter = Builders<ThreadRecord>.Filter.Eq(x => x.ThreadId, threadId);
             return await collection.Find(filter).FirstOrDefaultAsync();
         }
 

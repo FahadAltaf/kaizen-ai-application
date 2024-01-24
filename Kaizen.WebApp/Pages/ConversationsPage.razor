@@ -33,7 +33,7 @@
                 <div class="flex-1 overflow-y-auto text-sm leading-6 text-slate-900 shadow-md  sm:text-base sm:leading-7">
                     @foreach (var message in messages)
                     {
-                        if ((message.role == "assistant" || message.metadata.First().Value == "agent"))
+                        if (message.metadata.First().Value == "agent" || message.metadata.First().Value == "assistant" || message.role == "assistant")
                         {
                             <div class="flex @((message.metadata.First().Value == "agent")?"bg-slate-300":"bg-slate-100") px-4 py-8 dark:bg-slate-900 sm:px-6">
                                 <img class="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
@@ -155,6 +155,14 @@
                                 <span class="relative flex h-3 w-3">
                                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                                     <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                                </span>
+                            }
+
+                            @if (thread.HasNewMessages)
+                            {
+                                <span class="relative flex h-3 w-3">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
                                 </span>
                             }
 
@@ -319,6 +327,10 @@
             }
 
             messages = messages.Where(x => !string.IsNullOrEmpty(x.id)).OrderBy(x => x.createdAt).ToList();
+            if (selectedThreadRecord.HasNewMessages)
+            {
+                _= onMarkAsRead();
+            }
 
         }
         catch (Exception ex)
@@ -475,6 +487,26 @@
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
+        }
+    }
+
+    public async Task onMarkAsRead()
+    {
+        try
+        {
+            var response = await client.GetFromJsonAsync<APIGeneralResponse<ThreadRecord>>($"api/AsRead/{selectedThreadRecord.ThreadId}/false?code={APICode}");
+            if (response.Status)
+            {
+                selectedThreadRecord = response.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            StateHasChanged();
         }
     }
 }
