@@ -57,15 +57,13 @@
 
                                 <div class="flex w-full flex-col items-start lg:flex-row lg:justify-between">
                                     <p class="max-w-3xl">
-                                        <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">@message.content 
+                                        <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">@((message.content == "Media Recieved")?"":message.content)
                                             </pre>
                                         @if (message.metadata.ContainsKey("url"))
                                         {
-                                            <a href="@message.metadata["url"]" target="_blank" class="underline decoration-indigo-500">
-                                                Download
-                                            </a>
+                                            <a href="@message.metadata["url"]" target="_blank" class="text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2 mt-2 mb-2 text-center me-2 mb-2">Open Media</a>
                                         }
-                                        <pre class="text-xs italic">@UnixTimeStampToDateTime(message.createdAt) </pre>
+                                        <pre class="text-xs italic @((message.content == "Media Recieved")?"mt-2":"")">@UnixTimeStampToDateTime(message.createdAt) </pre>
                                     </p>
 
                                 </div>
