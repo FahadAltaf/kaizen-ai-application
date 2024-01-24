@@ -76,10 +76,29 @@
         }
 
         function playNotificationSound(val) {
-            var audio = (val == 0) ? new Audio('pop.mp3') : new Audio('tone.wav'); // Adjust the path
-            audio.play().catch(error => {
-                console.error("Audio playback failed:", error);
-            });
+            switch (val) {
+                case 0:
+                    var audio = new Audio('pop.mp3');
+                    audio.play().catch(error => {
+                        console.error("Audio playback failed:", error);
+                    });
+                    break;
+                case 1:
+                    var audio1 = new Audio('tone.wav');
+                    audio1.play().catch(error => {
+                        console.error("Audio playback failed:", error);
+                    });
+                    break;
+                case 2:
+                    var audio2 = new Audio('new.wav');
+                    audio2.play().catch(error => {
+                        console.error("Audio playback failed:", error);
+                    });
+                    break;
+                default:
+                    break;
+            }
+           
         }
 
         window.websocketInterop = {

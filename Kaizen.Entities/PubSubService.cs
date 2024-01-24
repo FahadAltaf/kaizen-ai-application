@@ -11,6 +11,7 @@ namespace Kaizen.Entities
     {
         Task MessageRecieved(string threadId);
         Task NeedAssistance(string threadId);
+        Task NewMessage(string threadId);
         Task InquiryRecieved(string threadId);
     }
 
@@ -36,6 +37,11 @@ namespace Kaizen.Entities
         public async Task NeedAssistance(string threadId)
         {
             await _client.SendToAllAsync($"needAssistance-{threadId}", Azure.Core.ContentType.TextPlain);
+        }
+
+        public async Task NewMessage(string threadId)
+        {
+            await _client.SendToAllAsync($"newMessage-{threadId}", Azure.Core.ContentType.TextPlain);
         }
 
         // Implement the methods

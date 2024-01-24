@@ -119,6 +119,7 @@ namespace Kaizen.API
                         // Add message to thread if not in AI mode
                         await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId });
                         await _dataService.UpdateThreadHasMessages(thread.ThreadId, true);
+                        await _webPubSubService.NewMessage(thread.ThreadId);
                         await _webPubSubService.MessageRecieved(thread.ThreadId);
                     }
                 }
