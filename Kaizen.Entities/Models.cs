@@ -319,6 +319,8 @@ namespace Kaizen.Entities
         public FbText text { get; set; }
         public string type { get; set; }
         public Document document { get; set; }
+        public Document audio { get; set; }
+        public Document video { get; set; }
         public Image image { get; set; }
     }
 

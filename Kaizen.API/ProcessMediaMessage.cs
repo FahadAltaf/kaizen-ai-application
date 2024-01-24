@@ -50,7 +50,7 @@ namespace Kaizen.API
                         BlobStorageService service = new BlobStorageService(new Azure.Storage.Blobs.BlobServiceClient(Environment.GetEnvironmentVariable("StorageKey")), _httpClient);
                         var fileName = $"{media.id}.{GetFileExtensionFromMimeType(media.mime_type)}";
                         _logger.LogInformation(fileName);
-                     data.docId=   await service.DownloadMediaAndUploadToBlobAsync(media.url, media.mime_type, "kaizen-media", fileName);
+                        data.docId = await service.DownloadMediaAndUploadToBlobAsync(media.url, media.mime_type, "kaizen-media", fileName);
                         _logger.LogWarning(data.docId);
                         // Retrieve Assistant ID linked with the platform
                         var assistantId = await _dataService.GetAssistantLinkedWithPlatform(data.number, ConversationPlatform.WhatsApp);
@@ -106,7 +106,7 @@ namespace Kaizen.API
                             else
                             {
                                 // Add message to thread if not in AI mode
-                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId });
+                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId, docId = data.docId });
                                 await _webPubSubService.MessageRecieved(thread.ThreadId);
                             }
                         }
@@ -135,6 +135,20 @@ namespace Kaizen.API
                 case "image/jpeg":
                     return ".jpg";
                 // Add other MIME types and corresponding extensions
+                case "image/png":
+                    return ".png";
+                case "application/pdf":
+                    return ".pdf";
+                case "audio/mp4":
+                    return ".mp4";
+                case "audio/mpeg":
+                    return ".mpeg";
+                case "audio/ogg":
+                    return ".ogg";
+                case "application/msword":
+                    return ".docx";
+                case "application/vnd.ms-excel":
+                    return ".xlsx";
                 default:
                     return "";
             }

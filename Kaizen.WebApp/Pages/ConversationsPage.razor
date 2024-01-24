@@ -210,6 +210,24 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="flex items-center gap-x-3">
+                            <div class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">
+                                @if (thread.IsLeasing)
+                                {
+                                    <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Leasing</span>
+                                }
+                                else
+                                {
+
+                                    <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">UM</span>
+                                }
+                            </div>
+                            <div class="flex-none text-xs text-gray-500">
+                                <div class="mt-1 flex items-center gap-x-1.5">
+                                   
+                                </div>
+                            </div>
+                        </div>
                     </a>
 
                 </li>

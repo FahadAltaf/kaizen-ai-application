@@ -144,6 +144,99 @@ namespace Kaizen.API
                             
 
                             break;
+                        case "document":
+
+                            from = root.entry[0].changes[0].value.messages[0].from;
+                            number = root.entry[0].changes[0].value.metadata.display_phone_number;
+
+                            var contactx1 = root.entry[0].changes[0].value.contacts;
+                            if (contactx1.Count > 0)
+                            {
+                                contactName = contactx1[0].profile.name;
+                            }
+                            var imgId1 = root.entry[0].changes[0].value.messages[0].document.id;
+                            message = string.IsNullOrEmpty(root.entry[0].changes[0].value.messages[0].document.caption) ? "Media Recieved" : root.entry[0].changes[0].value.messages[0].document.caption;
+                            if (!string.IsNullOrEmpty(imgId1))
+                            {
+                                _logger.LogWarning("Image id: " + imgId1);
+                                var createThreadRequest = client.CreateSender("process-media");
+                                await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ProcessMessageModel
+                                {
+                                    aiMessage = aiMessage,
+                                    aiThread = aiThread,
+                                    message = message,
+                                    from = from,
+                                    number = number,
+                                    docId = imgId1,
+                                    name = contactName
+                                })));
+                            }
+
+
+
+                            break;
+                        case "audio":
+
+                            from = root.entry[0].changes[0].value.messages[0].from;
+                            number = root.entry[0].changes[0].value.metadata.display_phone_number;
+
+                            var contactx2 = root.entry[0].changes[0].value.contacts;
+                            if (contactx2.Count > 0)
+                            {
+                                contactName = contactx2[0].profile.name;
+                            }
+                            var imgId2 = root.entry[0].changes[0].value.messages[0].audio.id;
+                            message = string.IsNullOrEmpty(root.entry[0].changes[0].value.messages[0].audio.caption) ? "Media Recieved" : root.entry[0].changes[0].value.messages[0].audio.caption;
+                            if (!string.IsNullOrEmpty(imgId2))
+                            {
+                                _logger.LogWarning("Image id: " + imgId2);
+                                var createThreadRequest = client.CreateSender("process-media");
+                                await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ProcessMessageModel
+                                {
+                                    aiMessage = aiMessage,
+                                    aiThread = aiThread,
+                                    message = message,
+                                    from = from,
+                                    number = number,
+                                    docId = imgId2,
+                                    name = contactName
+                                })));
+                            }
+
+
+
+                            break;
+                        case "video":
+
+                            from = root.entry[0].changes[0].value.messages[0].from;
+                            number = root.entry[0].changes[0].value.metadata.display_phone_number;
+
+                            var contactx3 = root.entry[0].changes[0].value.contacts;
+                            if (contactx3.Count > 0)
+                            {
+                                contactName = contactx3[0].profile.name;
+                            }
+                            var imgId3 = root.entry[0].changes[0].value.messages[0].video.id;
+                            message = string.IsNullOrEmpty(root.entry[0].changes[0].value.messages[0].video.caption) ? "Media Recieved" : root.entry[0].changes[0].value.messages[0].video.caption;
+                            if (!string.IsNullOrEmpty(imgId3))
+                            {
+                                _logger.LogWarning("Image id: " + imgId3);
+                                var createThreadRequest = client.CreateSender("process-media");
+                                await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ProcessMessageModel
+                                {
+                                    aiMessage = aiMessage,
+                                    aiThread = aiThread,
+                                    message = message,
+                                    from = from,
+                                    number = number,
+                                    docId = imgId3,
+                                    name = contactName
+                                })));
+                            }
+
+
+
+                            break;
                         default:
                             break;
                     }
