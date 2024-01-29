@@ -144,7 +144,22 @@
         {
             foreach (var thread in threads.OrderByDescending(x => x.LastActivityAt))
             {
-                <li class="p-4  @((selectedThreadRecord!=null && selectedThreadRecord.Id==thread.Id)?"force-border":"hover:bg-gray-100 hover:rounded")">
+                var color = "";
+                @switch (thread.LastMesageBy)
+                {
+                    case LastMesageBy.AI:
+                        color = "";
+                        break;
+                    case LastMesageBy.Agent:
+                    color= "bg-green-50";
+                        break;
+                    case LastMesageBy.User:
+                        color = "bg-indigo-50";
+                        break;
+                    default:
+                        break;
+                }
+                <li class="p-4 @color   @((selectedThreadRecord!=null && selectedThreadRecord.Id==thread.Id)?"force-border":"hover:bg-gray-100 hover:rounded")">
 
                     <a href="javascript:void(0)" @onclick="(async ()=>await LoadMessages(thread.ThreadId,false))">
                         <div class="flex items-center gap-x-3">

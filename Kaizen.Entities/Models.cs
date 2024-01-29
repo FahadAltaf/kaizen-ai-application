@@ -445,12 +445,20 @@ namespace Kaizen.Entities
         public string PlatformUserId { get; set; }
         public bool AiMode { get; set; }
         public DateTime LastActivityAt { get; set; }
+        public LastMesageBy LastMesageBy { get; set; }
         public string Alias { get; set; }
         public bool NeedsAssistance { get; set; }
         public bool IsLeasing { get; set; }
         public bool HasNewMessages { get; set; }
         public bool Visible { get; set; } = true;
         public bool Deleted { get; set; }
+    }
+    public enum LastMesageBy
+    {
+        None,
+        AI,
+        User,
+        Agent
     }
 
     public class AssistantRecord

@@ -27,6 +27,7 @@ namespace Kaizen.API
         [Function("Chat")]
         public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req)
         {
+            LastMesageBy lmb = LastMesageBy.None;
             _logger.LogInformation("C# HTTP trigger function processed a request.");
             ServiceBusClient client = new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBus"));
             APIGeneralResponse<AIResponse> data = new APIGeneralResponse<AIResponse>();
@@ -54,9 +55,10 @@ namespace Kaizen.API
                     var openAiThread = await _aiAssistant.CreateThread(record.AssistantId, metadata);
                     record.ThreadId = openAiThread.id;
                     var notificationQueue = client.CreateSender("create-thread-record");
-                    await notificationQueue.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord { AiMode = true, AssistantId = record.AssistantId, Platform = ConversationPlatform.Website, PlatformUserId = "", ThreadId = openAiThread.id })));
+                    await notificationQueue.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord { AiMode = true, AssistantId = record.AssistantId, Platform = ConversationPlatform.Website, PlatformUserId = "", ThreadId = openAiThread.id, LastMesageBy=  LastMesageBy.AI })));
                     await _aiAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = record.AssistantId, Message = record.content, Thread_Id = openAiThread.id });
                     data.Data.AIMessage = await _aiAssistant.GetAIResponse(record.AssistantId, openAiThread.id);
+              
                 }
                 else
                 {
@@ -73,7 +75,7 @@ namespace Kaizen.API
                         var openAiThread = await _aiAssistant.CreateThread(record.AssistantId, metadata);
                         record.ThreadId = openAiThread.id;
                         var notificationQueue = client.CreateSender("create-thread-record");
-                        await notificationQueue.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord { AiMode = true, AssistantId = record.AssistantId, Platform = ConversationPlatform.Website, PlatformUserId = "", ThreadId = openAiThread.id })));
+                        await notificationQueue.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord { AiMode = true, LastMesageBy= LastMesageBy.AI, AssistantId = record.AssistantId, Platform = ConversationPlatform.Website, PlatformUserId = "", ThreadId = openAiThread.id })));
                         await _aiAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = record.AssistantId, Message = record.content, Thread_Id = openAiThread.id });
                         data.Data.AIMessage = await _aiAssistant.GetAIResponse(record.AssistantId, openAiThread.id);
                     }
@@ -93,6 +95,7 @@ namespace Kaizen.API
                                 //await sendMessageRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new SendMessageBody { From = "", Message = record.content, To = dbThread.PlatformUserId })));
                                 await SendWhatsAppMessage(new SendMessageBody { From = "", Message = record.content, To = dbThread.PlatformUserId });
                             }
+                            lmb = LastMesageBy.Agent;
                         }
                         else
                         {
@@ -100,12 +103,13 @@ namespace Kaizen.API
                             {
                                 await _aiAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = record.AssistantId, Message = record.content, Thread_Id = dbThread.ThreadId });
                                 data.Data.AIMessage = await _aiAssistant.GetAIResponse(dbThread.AssistantId, dbThread.ThreadId);
+                                lmb = LastMesageBy.AI;
                             }
                             else
                             {
                                 await _aiAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = record.AssistantId, Message = record.content, Thread_Id = record.ThreadId });
                             }
-                          await  _service.UpdateThreadRecordActivity(dbThread.ThreadId);
+                          await  _service.UpdateThreadRecordActivity(dbThread.ThreadId,lmb);
                         }
                     }
                 }

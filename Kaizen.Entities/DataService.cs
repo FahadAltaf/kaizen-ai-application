@@ -94,11 +94,11 @@ namespace Kaizen.Entities
         //    await collection.UpdateOneAsync(filter, update);
         //}
 
-        public async Task UpdateThreadRecordActivity(string threadId)
+        public async Task UpdateThreadRecordActivity(string threadId, LastMesageBy by)
         {
             var collection = database.GetCollection<ThreadRecord>("Threads");
             var filter = Builders<ThreadRecord>.Filter.Eq(x => x.ThreadId, threadId);
-            var update = Builders<ThreadRecord>.Update.Set(x => x.LastActivityAt, DateTime.UtcNow);
+            var update = Builders<ThreadRecord>.Update.Set(x => x.LastActivityAt, DateTime.UtcNow).Set(x => x.LastMesageBy, by);
             await collection.UpdateOneAsync(filter, update);
         }
 

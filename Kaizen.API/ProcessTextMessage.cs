@@ -55,7 +55,7 @@ namespace Kaizen.API
                     };
 
                     var openAiThread = await _aIAssistant.CreateThread(assistantId, metadata);
-                    bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/to") || data.message.Contains("https://dubizzle.com/s") || data.message.Contains("https://www.bayut.com/pm"));
+                    bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/to") || data.message.Contains("https://dubizzle.com/s") || data.message.Contains("https://www.bayut.com/pm") || data.message.Contains("https://www.bayut.com/property"));
                     // Send the thread record to the service bus for processing
                     var createThreadRequest = client.CreateSender("create-thread-record");
                     await createThreadRequest.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(new ThreadRecord
@@ -67,7 +67,7 @@ namespace Kaizen.API
                         ThreadId = openAiThread.id,
                         LastActivityAt = DateTime.UtcNow,
                         Alias = data.name,
-                        IsLeasing = isLeasing,
+                        IsLeasing = isLeasing, LastMesageBy = LastMesageBy.AI
                     })));
 
                     // Get AI response for the new thread
@@ -89,8 +89,8 @@ namespace Kaizen.API
                 }
                 else
                 {
-                    bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/to") || data.message.Contains("https://dubizzle.com/s") || data.message.Contains("https://www.bayut.com/pm"));
-                    await _dataService.UpdateThreadRecordActivity(thread.ThreadId);
+                    bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/to") || data.message.Contains("https://dubizzle.com/s") || data.message.Contains("https://www.bayut.com/pm")||data.message.Contains("https://www.bayut.com/property"));
+                    await _dataService.UpdateThreadRecordActivity(thread.ThreadId, LastMesageBy.AI);
                     // Handle existing thread
                     if (thread.AiMode)
                     {
