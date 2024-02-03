@@ -18,7 +18,7 @@ namespace Kaizen.API
         }
 
         [Function("conversation")]
-        public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post",Route = "conversation/{threadId}/{after}")] HttpRequestData req, string threadId,string after)
+        public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post",Route = "conversation/{threadId}")] HttpRequestData req, string threadId)
         {
             _logger.LogInformation("C# HTTP trigger function processed a request.");
 
@@ -27,7 +27,7 @@ namespace Kaizen.API
             try
             {
                 data.Data = new List<Conversations>();
-                var msgs = (string.IsNullOrEmpty(after) || after == "none") ? await _aiAssistant.GetMessages(threadId) : await _aiAssistant.GetMessages(threadId,after,10);
+                var msgs =  await _aiAssistant.GetMessages(threadId);
                 foreach (var msg in msgs)
                 {
                     if (msg.role == "assistant")

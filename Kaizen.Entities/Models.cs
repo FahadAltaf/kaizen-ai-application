@@ -452,6 +452,7 @@ namespace Kaizen.Entities
         public bool HasNewMessages { get; set; }
         public bool Visible { get; set; } = true;
         public bool Deleted { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
     public enum LastMesageBy
     {

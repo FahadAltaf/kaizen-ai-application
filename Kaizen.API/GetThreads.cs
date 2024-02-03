@@ -27,8 +27,9 @@ namespace Kaizen.API
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
             {
+                var searchedText = req.Query["search"].ToString();
                 data.Data = new List<ThreadRecord>();
-                data.Data = await _aiAssistant.AssistantThreads(assistantId);
+                data.Data = await _aiAssistant.AssistantThreads(assistantId,searchedText);
                 data.Status = true;
             }
             catch (Exception ex)

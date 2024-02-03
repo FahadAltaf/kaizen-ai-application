@@ -243,23 +243,66 @@ namespace Kaizen.Entities
             throw new Exception($"Unable to retrive message details.");
         }
 
-        public async Task<List<OpenAIMessage>> GetMessages(string threadId, string after = "", int limit = 50)
+        //public async Task<List<OpenAIMessage>> GetMessages(string threadId, string after = "", int limit = 50)
+        //{
+        //    Console.WriteLine($"Retriving assistant message:");
+        //    string url = $"https://api.openai.com/v1/threads/{threadId}/messages?limit={limit}";
+        //    if (!string.IsNullOrEmpty(after))
+        //    {
+        //        url += $"&before={after}";
+        //    }
+
+        //    var response = await _httpClient.GetFromJsonAsync<OpenAIMessageList>(url);
+        //    if (response != null)
+        //    {
+        //        return response.data;
+
+        //    }
+        //    throw new Exception($"Unable to retrive message details.");
+        //}
+
+        public async Task<List<OpenAIMessage>> GetMessages(string threadId)
         {
-            Console.WriteLine($"Retriving assistant message:");
-            string url = $"https://api.openai.com/v1/threads/{threadId}/messages?limit={limit}";
-            if (!string.IsNullOrEmpty(after))
-            {
-                url += $"&before={after}";
-            }
+            List<OpenAIMessage> allMessages = new List<OpenAIMessage>();
+            string after = "";
+            int limit = 100; // Set the limit to the maximum value allowed by the API
 
-            var response = await _httpClient.GetFromJsonAsync<OpenAIMessageList>(url);
-            if (response != null)
+            try
             {
-                return response.data;
+                while (true)
+                {
+                    string url = $"https://api.openai.com/v1/threads/{threadId}/messages?limit={limit}";
+                    if (!string.IsNullOrEmpty(after))
+                    {
+                        url += $"&after={after}";
+                    }
 
+                    var response = await _httpClient.GetFromJsonAsync<OpenAIMessageList>(url);
+                    if (response == null || response.data == null || response.data.Count == 0)
+                    {
+                        break;
+                    }
+
+                    allMessages.AddRange(response.data);
+                    if (response.data.Count < limit)
+                    {
+                        // No more messages left to fetch
+                        break;
+                    }
+
+                    // Set 'after' to the last retrieved message ID for pagination
+                    after = response.data.Last().id;
+                }
+
+                return allMessages;
             }
-            throw new Exception($"Unable to retrive message details.");
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception occurred while retrieving messages: {ex.Message}");
+                throw;
+            }
         }
+
 
 
         public async Task<string> GetAIResponse(string assistantId, string threadId)

@@ -13,7 +13,11 @@
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
     <style>
         .force-border {
-            border: 1px solid #667eea !important; /* This is the hex code for Tailwind's indigo-500 */
+            border-radius:10px;
+        }
+
+        .force-text-color * {
+            color: inherit !important;
         }
     </style>
 </head>
@@ -25,9 +29,6 @@
         </div>
     </div>
 
-    
-    <script src="_framework/blazor.webassembly.js"></script>
-    <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script>
         function GetUrl() {
             var myHeaders = new Headers();
@@ -98,7 +99,7 @@
                 default:
                     break;
             }
-           
+
         }
 
         window.websocketInterop = {
@@ -123,7 +124,20 @@
                 };
             }
         };
+
+        function initializeChatInput(dotNetHelper) {
+            document.getElementById('chat-input').addEventListener('keypress', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    dotNetHelper.invokeMethodAsync('EnterKeyPressed', document.getElementById('chat-input').value);
+                    document.getElementById('chat-input').value = '';
+                }
+            });
+        }
     </script>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
+    
 </body>
 
 </html>

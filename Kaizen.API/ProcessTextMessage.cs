@@ -90,7 +90,7 @@ namespace Kaizen.API
                 else
                 {
                     bool isLeasing = (data.message.Contains("https://www.propertyfinder.ae/to") || data.message.Contains("https://dubizzle.com/s") || data.message.Contains("https://www.bayut.com/pm")||data.message.Contains("https://www.bayut.com/property"));
-                    await _dataService.UpdateThreadRecordActivity(thread.ThreadId, LastMesageBy.AI);
+                    LastMesageBy by = LastMesageBy.AI;
                     // Handle existing thread
                     if (thread.AiMode)
                     {
@@ -116,12 +116,15 @@ namespace Kaizen.API
                     }
                     else
                     {
+                        by = LastMesageBy.User;
                         // Add message to thread if not in AI mode
                         await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId });
                         await _dataService.UpdateThreadHasMessages(thread.ThreadId, true);
                         await _webPubSubService.NewMessage(thread.ThreadId);
                         await _webPubSubService.MessageRecieved(thread.ThreadId);
                     }
+
+                    await _dataService.UpdateThreadRecordActivity(thread.ThreadId, by);
                 }
 
                 // Send AI response back to WhatsApp if there is a message to send

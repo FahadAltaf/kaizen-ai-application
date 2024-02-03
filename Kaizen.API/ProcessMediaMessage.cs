@@ -93,7 +93,7 @@ namespace Kaizen.API
                         }
                         else
                         {
-                            await _dataService.UpdateThreadRecordActivity(thread.ThreadId);
+                            LastMesageBy by = LastMesageBy.AI;
                             // Handle existing thread
                             if (thread.AiMode)
                             {
@@ -105,10 +105,13 @@ namespace Kaizen.API
                             }
                             else
                             {
+                                by = LastMesageBy.User;
                                 // Add message to thread if not in AI mode
                                 await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId, docId = data.docId });
                                 await _webPubSubService.MessageRecieved(thread.ThreadId);
                             }
+
+                            await _dataService.UpdateThreadRecordActivity(thread.ThreadId,by);
                         }
                     }
                     else

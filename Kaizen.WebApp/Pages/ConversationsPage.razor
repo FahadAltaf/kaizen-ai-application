@@ -57,8 +57,8 @@
 
                                 <div class="flex w-full flex-col items-start lg:flex-row lg:justify-between">
                                     <p class="max-w-3xl">
-                                        <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">@((message.content == "Media Recieved")?"":message.content)
-                                            </pre>
+                                        <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">@((message.content == "Media Recieved") ? "" : message.content)
+                                                                                            </pre>
                                         @if (message.metadata.ContainsKey("url"))
                                         {
                                             <a href="@message.metadata["url"]" target="_blank" class="text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2 mt-2 mb-2 text-center me-2 mb-2">Open Media</a>
@@ -69,6 +69,20 @@
                                 </div>
                             </div>
                         }
+                    }
+
+                    @if (sending)
+                    {
+                        <div class="flex flex-row px-4 py-8 sm:px-6">
+                            <img class="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
+                                 src="https://dummyimage.com/256x256/363536/ffffff&text=A" />
+
+                            <div class="flex w-full flex-col items-start lg:flex-row lg:justify-between">
+                                <p class="max-w-3xl">
+                                    <LoadingComponent />     <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">Sending...</pre>
+                                </p>
+                            </div>
+                        </div>
                     }
                 </div>
             }
@@ -82,7 +96,7 @@
             else
             {
                 <div class="sticky bottom-0 flex w-full items-center rounded-b-md border-t border-indigo-300 bg-indigo-600 p-2 text-white">
-                    <label for="chat" class="sr-only">Enter your prompt</label>
+                    <label for="chat" class="sr-only">Enter your message</label>
                     <div>
                         <button @onclick="onToggle" class="hover:text-indigo-800 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
                                 type="button">
@@ -93,11 +107,10 @@
                             <span class="sr-only">Add</span>
                         </button>
                     </div>
-                    <input id="chat-input" @onkeypress="HandleKeyPress" @bind-value="text" @bind-value:event="oninput"
-                           class="mx-2 flex min-h-full w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-base text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:placeholder-slate-400 dark:focus:border-blue-600 dark:focus:ring-blue-600"
-                           placeholder="Enter your prompt"></input>
+                    <input id="chat-input" class="mx-2 flex min-h-full w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-base text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:placeholder-slate-400 dark:focus:border-blue-600 dark:focus:ring-blue-600"
+                           placeholder="Enter your message" />
                     <div>
-                        <button @onclick="SendMessage" class="inline-flex hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
+                        <button class="inline-flex hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
                                 type="button">
                             <svg xmlns="http://www.w3.org/2000/svg"
                                  class="h-6 w-6"
@@ -123,8 +136,25 @@
 
 </main>
 
-<aside class="fixed inset-y-0 left-72 hidden w-96 overflow-y-auto border-r border-gray-200 px-2 py-6 xl:block">
+<aside class="fixed inset-y-0 left-72 hidden w-96 overflow-y-auto border-r border-gray-200 px-2 xl:block">
     <ul role="list" class="divide-y divide-gray-100">
+        <li>
+            <div class="sticky bottom-0 flex w-full items-center p-2 text-white">
+                <label for="chat" class="sr-only">Search...</label>
+                <input id="search" @bind-value="searchedText" class="mx-2 flex min-h-full w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-base text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:placeholder-slate-400 dark:focus:border-blue-600 dark:focus:ring-blue-600"
+                       placeholder="Search..." />
+                <div>
+                    <button class="inline-flex text-blue-600 sm:p-2" @onclick="onSearch"
+                            type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 15.75-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.774 4.774ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+
+                        <span class="sr-only">Search...</span>
+                    </button>
+                </div>
+            </div>
+        </li>
         @if (threads == null)
         {
             <LoadingComponent />
@@ -142,6 +172,7 @@
         }
         else
         {
+
             foreach (var thread in threads.OrderByDescending(x => x.LastActivityAt))
             {
                 var color = "";
@@ -151,7 +182,7 @@
                         color = "";
                         break;
                     case LastMesageBy.Agent:
-                    color= "bg-green-50";
+                        color = "bg-green-50";
                         break;
                     case LastMesageBy.User:
                         color = "bg-indigo-50";
@@ -159,17 +190,11 @@
                     default:
                         break;
                 }
-                <li class="p-4 @color   @((selectedThreadRecord!=null && selectedThreadRecord.Id==thread.Id)?"force-border":"hover:bg-gray-100 hover:rounded")">
+                <li class="force-border p-4 @color   @((selectedThreadRecord!=null && selectedThreadRecord.Id==thread.Id)?" bg-indigo-300 force-text-color text-black":"hover:bg-gray-100 hover:rounded")">
 
-                    <a href="javascript:void(0)" @onclick="(async ()=>await LoadMessages(thread.ThreadId,false))">
+                    <a href="javascript:void(0)" @onclick="(async ()=>{ await LoadMessages(thread.ThreadId,false);})">
                         <div class="flex items-center gap-x-3">
-                            @if (thread.NeedsAssistance)
-                            {
-                                <span class="relative flex h-3 w-3">
-                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
-                                </span>
-                            }
+
 
                             @if (thread.HasNewMessages)
                             {
@@ -179,7 +204,25 @@
                                 </span>
                             }
 
-                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-900">@((string.IsNullOrEmpty(thread.Alias) ? thread.PlatformUserId : $"{thread.Alias}({thread.PlatformUserId})"))</h3>
+                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-900">@((string.IsNullOrEmpty(thread.Alias) ? "No Name" : $"{thread.Alias}"))</h3>
+                            <div class="flex-none text-xs text-gray-500">
+                                <div class="mt-1 flex items-center gap-x-1.5">
+                                    @thread.LastActivityAt.Humanize()
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-x-3">
+                            @if (thread.NeedsAssistance)
+                            {
+                                <span class="relative flex h-3 w-3">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                                </span>
+                            }
+
+
+
+                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-900">@thread.PlatformUserId</h3>
                             <div class="flex-none text-xs text-gray-500">
                                 <div class="mt-1 flex items-center gap-x-1.5">
                                     @if ((DateTime.UtcNow - thread.LastActivityAt).TotalMinutes < 15)
@@ -202,7 +245,7 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-x-3">
-                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">Last Activity at @thread.LastActivityAt.Humanize()</h3>
+                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">@thread.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</h3>
                             <div class="flex-none text-xs text-gray-500">
                                 <div class="mt-1 flex items-center gap-x-1.5">
                                     @if (thread.AiMode)
@@ -237,7 +280,6 @@
                             </div>
                             <div class="flex-none text-xs text-gray-500">
                                 <div class="mt-1 flex items-center gap-x-1.5">
-                                   
                                 </div>
                             </div>
                         </div>
@@ -246,41 +288,25 @@
                 </li>
             }
         }
-        @*      <li class="p-4 border border-indigo-300 rounded hover:bg-gray-100 ">
-        <a href="javascript:void(0)">
-        <div class="flex items-center gap-x-3">
-        <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-900">Michael Foster</h3>
-        <div class="flex-none text-xs text-gray-500">
-        <div class="mt-1 flex items-center gap-x-1.5">
-        <div class="flex-none rounded-full bg-emerald-500/20 p-1">
-        <div class="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
-        </div>
-        <p class="text-xs leading-5 text-gray-500">Online</p>
-        </div>
-        </div>
-        </div>
-        <p class="mt-3 truncate text-sm text-gray-500">Source: WhatsApp</p>
-        </a>
-        </li>
-
-        *@
 
     </ul>
 
 </aside>
 
 @code {
+    public List<ThreadRecord> AllThreads { get; set; } = new List<ThreadRecord>();
+    public string searchedText { get; set; } = "";
     [Parameter]
     public string assistantId { get; set; }
     public ThreadRecord selectedThreadRecord { get; set; }
     public List<ThreadRecord> threads { get; set; }
     public List<Conversations> messages { get; set; }
-    public string text { get; set; }
+    public bool Registered { get; set; }
     private ElementReference messagesContainer;
     public string APICode { get; set; } = "7Q7Uo9EsyC4jHnqocWFrwrYm-Cc94NHjHgYG4-wt2X_8AzFuHQ86RA==";
     private WebPubSubServiceClient serviceClient;
     private string hubName = "kaizen"; // Your hub name
-
+    public bool sending { get; set; }
     string UnixTimeStampToDateTime(double unixTimeStamp)
     {
         // Unix timestamp is seconds past epoch
@@ -294,7 +320,9 @@
         var url = serviceClient.GetClientAccessUri();
 
         await JSRuntime.InvokeVoidAsync("websocketInterop.connect", DotNetObjectReference.Create(this), url);
+
     }
+
 
     [JSInvokable]
     public async void ReceiveMessage(string message)
@@ -333,35 +361,31 @@
     {
         try
         {
-
             selectedThreadRecord = threads.FirstOrDefault(x => x.ThreadId == threadId);
             StateHasChanged();
-            string after = "none";
-            if (loadMore)
+
+            if (selectedThreadRecord.AiMode)
             {
-                after = messages.LastOrDefault().id;
-            }
-            else
-            {
-                messages = null;
-            }
-            if (messages == null)
-            {
-                messages = new List<Conversations>();
+                Registered = false;
             }
 
-            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>((string.IsNullOrEmpty(after) || after == "none") ? $"api/Conversation/{threadId}/none?code={APICode}" : $"api/Conversation/{threadId}/{after}?code={APICode}");
-
-            foreach (var message in response.Data)
+            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>($"api/Conversation/{threadId}?code={APICode}");
+            if (response.Status)
             {
-                if (!messages.Exists(x => x.id == message.id))
+                if (messages == null)
+                    messages = new List<Conversations>();
+                foreach (var message in response.Data)
                 {
-                    messages.Add(message);
+                    if (!messages.Exists(x => x.id == message.id))
+                    {
+                        messages.Add(message);
+                    }
                 }
+
+                messages = messages.Where(x => !string.IsNullOrEmpty(x.id)).OrderBy(x => x.createdAt).ToList();
             }
 
-            messages = messages.Where(x => !string.IsNullOrEmpty(x.id)).OrderBy(x => x.createdAt).ToList();
-            if (selectedThreadRecord.HasNewMessages)
+            if (selectedThreadRecord.ThreadId==threadId && selectedThreadRecord.HasNewMessages)
             {
                 await onMarkAsRead();
             }
@@ -374,8 +398,23 @@
         finally
         {
             StateHasChanged();
+            if (!Registered)
+            {
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("initializeChatInput", DotNetObjectReference.Create(this));
+                    Registered = true;
+                    Console.WriteLine("event registered");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Unable to register");
+                }
 
+            }
             await ScrollToBottom();
+
+
         }
 
 
@@ -383,27 +422,31 @@
 
     static string RemoveSourceReference(string text)
     {
-        string startPattern = "【";
-        string endPattern = "】";
-        int startIndex = text.IndexOf(startPattern);
-        int endIndex;
-
-        while (startIndex != -1)
+        if (!string.IsNullOrEmpty(text))
         {
-            endIndex = text.IndexOf(endPattern, startIndex);
-            if (endIndex != -1)
-            {
-                // Remove the text from startPattern to endPattern
-                text = text.Remove(startIndex, endIndex - startIndex + endPattern.Length);
-            }
-            else
-            {
-                // If there's no endPattern, break the loop
-                break;
-            }
+            string startPattern = "【";
+            string endPattern = "】";
+            int startIndex = text.IndexOf(startPattern);
+            int endIndex;
 
-            startIndex = text.IndexOf(startPattern);
+            while (startIndex != -1)
+            {
+                endIndex = text.IndexOf(endPattern, startIndex);
+                if (endIndex != -1)
+                {
+                    // Remove the text from startPattern to endPattern
+                    text = text.Remove(startIndex, endIndex - startIndex + endPattern.Length);
+                }
+                else
+                {
+                    // If there's no endPattern, break the loop
+                    break;
+                }
+
+                startIndex = text.IndexOf(startPattern);
+            }
         }
+
 
         return text;
     }
@@ -412,8 +455,9 @@
     {
         try
         {
-            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={APICode}");
+            var response = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}/?code={APICode}&search={searchedText}");
             threads = response.Data.ToList();
+            AllThreads = threads;
         }
         catch (Exception ex)
         {
@@ -426,6 +470,14 @@
 
 
 
+    }
+
+    async Task onSearch()
+    {
+        threads = null;
+        messages = new List<Conversations>();
+        StateHasChanged();
+        await LoadThreads();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -442,18 +494,21 @@
         await JSRuntime.InvokeVoidAsync("scrollToBottom", messagesContainer);
     }
 
-    private async Task SendMessage()
+    private async Task SendMessage(string message)
     {
         if (selectedThreadRecord != null)
         {
             try
             {
+                sending = true;
+                StateHasChanged();
+                await ScrollToBottom();
                 var conversation = new
                 Conversations
-                    { createdAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(), content = text, role = "agent" };
+                    { createdAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(), content = message, role = "agent" };
                 conversation.metadata.Add("role", "agent");
                 messages.Add(conversation);
-               
+
 
                 var response = await client.PostAsJsonAsync($"api/Chat?code={APICode}", new ConversationModel
 
@@ -465,16 +520,9 @@
                     });
                 if (response.IsSuccessStatusCode)
                 {
-                    text = string.Empty;
+                    sending = false;
                     await LoadMessages(selectedThreadRecord.ThreadId, true);
 
-                    // var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
-                    // // Process the response here, e.g., display the message in the UI or clear the text field
-                    // userMessage = ""; // Clear the message input after sending
-                    if (selectedThreadRecord.NeedsAssistance)
-                    {
-                        await LoadThreads();
-                    }
                 }
                 else
                 {
@@ -488,6 +536,7 @@
             }
             finally
             {
+
                 StateHasChanged();
             }
 
@@ -496,13 +545,12 @@
 
     }
 
-    private async Task HandleKeyPress(KeyboardEventArgs e)
+    [JSInvokable]
+    public async void EnterKeyPressed(string message)
     {
-        if (e.Key == "Enter")
-        {
-            await SendMessage();
-        }
+        await SendMessage(message);
     }
+
 
     public async Task onToggle()
     {
@@ -514,6 +562,7 @@
                 var response1 = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={APICode}");
                 threads = response1.Data;
                 await LoadMessages(selectedThreadRecord.ThreadId, true);
+
             }
         }
         catch (Exception ex)

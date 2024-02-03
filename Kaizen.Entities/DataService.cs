@@ -111,12 +111,13 @@ namespace Kaizen.Entities
             return record;
         }
 
-        public async Task<List<ThreadRecord>> AssistantThreads(string assistantId)
+        public async Task<List<ThreadRecord>> AssistantThreads(string assistantId,string text="")
         {
             if (string.IsNullOrEmpty(assistantId))
                 throw new Exception("AI assistant id is not provided");
             var collection = database.GetCollection<ThreadRecord>("Threads");
-            var filter = Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.Deleted, false);
+            var filter =(string.IsNullOrEmpty(text))? Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.Deleted, false):
+                Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.Deleted, false) & (Builders<ThreadRecord>.Filter.Regex(x=>x.PlatformUserId, new BsonRegularExpression(text, "i")) | Builders<ThreadRecord>.Filter.Regex(x => x.Alias, new BsonRegularExpression(text, "i")));
             var all = await collection.Find(filter).ToListAsync();
             var groups = all.GroupBy(x => x.PlatformUserId);
             foreach (var item in groups)
