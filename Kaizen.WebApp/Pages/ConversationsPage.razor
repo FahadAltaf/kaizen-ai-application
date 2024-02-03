@@ -372,7 +372,7 @@
             var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>($"api/Conversation/{threadId}?code={APICode}");
             if (response.Status)
             {
-                if (messages == null)
+                if (!loadMore || messages==null)
                     messages = new List<Conversations>();
                 foreach (var message in response.Data)
                 {
