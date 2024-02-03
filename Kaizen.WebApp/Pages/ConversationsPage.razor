@@ -11,7 +11,7 @@
 
         <!-- Prompt Messages -->
         @if (selectedThreadRecord != null)
-        {
+        { bool passed = false;
             if (messages == null)
             {
                 <LoadingComponent />
@@ -30,9 +30,12 @@
             }
             else
             {
+               
                 <div class="flex-1 overflow-y-auto text-sm leading-6 text-slate-900 shadow-md  sm:text-base sm:leading-7">
+
                     @foreach (var message in messages)
                     {
+
                         if (message.metadata.First().Value == "agent" || message.metadata.First().Value == "assistant" || message.role == "assistant")
                         {
                             <div class="flex @((message.metadata.First().Value == "agent")?"bg-slate-300":"bg-slate-100") px-4 py-8 dark:bg-slate-900 sm:px-6">
@@ -43,7 +46,7 @@
                                     <p class="max-w-3xl">
                                         <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">
                                             @RemoveSourceReference(message.content)</pre>
-                                        <pre class="text-xs italic">@UnixTimeStampToDateTime(message.createdAt) </pre>
+                                        <pre class="text-xs italic">@($"{UnixTimeStampToDateTime(message.createdAt).ToString("yyyy-MM-dd HH:mm:ss")} - {UnixTimeStampToDateTime(message.createdAt).Humanize()}") </pre>
                                     </p>
 
                                 </div>
@@ -51,6 +54,14 @@
                         }
                         else
                         {
+                            if ((DateTime.UtcNow - UnixTimeStampToDateTime(message.createdAt)).TotalHours > 24)
+                            {
+                                passed = true;
+                            }
+                            else
+                            {
+                                passed = false;
+                            }
                             <div class="flex flex-row px-4 py-8 sm:px-6">
                                 <img class="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
                                      src="https://dummyimage.com/256x256/363536/ffffff&text=U" />
@@ -58,12 +69,12 @@
                                 <div class="flex w-full flex-col items-start lg:flex-row lg:justify-between">
                                     <p class="max-w-3xl">
                                         <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">@((message.content == "Media Recieved") ? "" : message.content)
-                                                                                            </pre>
+                                                                                                                            </pre>
                                         @if (message.metadata.ContainsKey("url"))
                                         {
                                             <a href="@message.metadata["url"]" target="_blank" class="text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2 mt-2 mb-2 text-center me-2 mb-2">Open Media</a>
                                         }
-                                        <pre class="text-xs italic @((message.content == "Media Recieved")?"mt-2":"")">@UnixTimeStampToDateTime(message.createdAt) </pre>
+                                        <pre class="text-xs italic @((message.content == "Media Recieved")?"mt-2":"")">@($"{UnixTimeStampToDateTime(message.createdAt).ToString("yyyy-MM-dd HH:mm:ss")} - {UnixTimeStampToDateTime(message.createdAt).Humanize()}") </pre>
                                     </p>
 
                                 </div>
@@ -87,7 +98,15 @@
                 </div>
             }
 
-            if (selectedThreadRecord.AiMode)
+            if(passed)
+            {
+                <button type="button" @onclick="onToggle" class="sticky bottom-0 bg-white block w-full rounded-lg border-2 border-dashed border-gray-300 p-2 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    <span class="mt-2 block text-sm font-semibold text-gray-900">You cannot send the message because 24hrs has been passed</span>
+                </button>
+            }
+            else
+            {
+                 if (selectedThreadRecord.AiMode)
             {
                 <button type="button" @onclick="onToggle" class="sticky bottom-0 bg-white block w-full rounded-lg border-2 border-dashed border-gray-300 p-2 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                     <span class="mt-2 block text-sm font-semibold text-gray-900">Click here to join the conversation</span>
@@ -130,6 +149,9 @@
                     </div>
                 </div>
             }
+            }
+
+           
         }
 
     </div>
@@ -307,12 +329,12 @@
     private WebPubSubServiceClient serviceClient;
     private string hubName = "kaizen"; // Your hub name
     public bool sending { get; set; }
-    string UnixTimeStampToDateTime(double unixTimeStamp)
+    DateTime UnixTimeStampToDateTime(double unixTimeStamp)
     {
         // Unix timestamp is seconds past epoch
         DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
         dateTime = dateTime.AddSeconds(unixTimeStamp).ToLocalTime();
-        return dateTime.Humanize();
+        return dateTime;
     }
     protected override async Task OnInitializedAsync()
     {
@@ -372,7 +394,7 @@
             var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>($"api/Conversation/{threadId}?code={APICode}");
             if (response.Status)
             {
-                if (!loadMore || messages==null)
+                if (!loadMore || messages == null)
                     messages = new List<Conversations>();
                 foreach (var message in response.Data)
                 {
@@ -385,7 +407,7 @@
                 messages = messages.Where(x => !string.IsNullOrEmpty(x.id)).OrderBy(x => x.createdAt).ToList();
             }
 
-            if (selectedThreadRecord.ThreadId==threadId && selectedThreadRecord.HasNewMessages)
+            if (selectedThreadRecord.ThreadId == threadId && selectedThreadRecord.HasNewMessages)
             {
                 await onMarkAsRead();
             }
