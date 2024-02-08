@@ -1,6 +1,8 @@
-﻿using System;
+﻿using SharpCompress.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -105,6 +107,100 @@ namespace Kaizen.Entities
             Console.WriteLine($"Assistant: {assistantMessage.content[0].text.value}");
             return assistantMessage.content[0].text.value;
         }
+
+        public async Task<List<AssistantFile>> ListAllAssistantFiles(string assistantId)
+        {
+            var allFiles = new List<AssistantFile>();
+            var hasMore = true;
+            var afterId = string.Empty;
+
+            while (hasMore)
+            {
+                var response = await ListAssistantFiles(assistantId, afterId);
+                allFiles.AddRange(response.data);
+                afterId = response.last_id;
+                hasMore = response.has_more;
+            }
+
+            return allFiles;
+        }
+
+        private async Task<AssistantFilesResponse> ListAssistantFiles(string assistantId, string afterId)
+        {
+            var requestUrl = $"{_baseUrl}/assistants/{assistantId}/files";
+
+            if (!string.IsNullOrEmpty(afterId))
+            {
+                requestUrl += $"?after={afterId}";
+            }
+
+            var response = await _httpClient.GetAsync(requestUrl);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<AssistantFilesResponse>(content);
+        }
+
+        public async Task<OpenAIFile> GetFile(string fileId)
+        {
+            var requestUrl = $"{_baseUrl}/files/{fileId}";
+
+            var response = await _httpClient.GetAsync(requestUrl);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<OpenAIFile>(content);
+        }
+
+        public async Task<bool> UpdateAssistantFiles(string assistantId, string[] fileIds)
+        {
+            // Construct the request URL
+            var requestUrl = $"{_baseUrl}/assistants/{assistantId}";
+
+            // Create the request body
+            var requestBody = new
+            {
+                tools = new[]
+        {
+            new { type = "retrieval" }
+        },
+                file_ids = fileIds
+            };
+
+            // Serialize the request body to JSON
+            var jsonContent = JsonSerializer.Serialize(requestBody);
+            using var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            // Send the POST request
+            var response = await _httpClient.PostAsync(requestUrl, content);
+            var contentx = await response.Content.ReadAsStringAsync();
+            
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<DeleteFileModel> DeleteFile(string fileId)
+        {
+            var requestUrl = $"{_baseUrl}/files/{fileId}";
+
+            var response = await _httpClient.DeleteAsync(requestUrl);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<DeleteFileModel>(content);
+        }
+
+        public async Task<FileResponse> UploadLocalFile(string filePath,string name)
+        {
+            var fileContent = new ByteArrayContent(File.ReadAllBytes(filePath));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain"); 
+
+            // Prepare the multipart/form-data request
+            using var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent("assistants"), "purpose");
+            formData.Add(fileContent, "file", name);
+
+            var response = await _httpClient.PostAsync("https://api.openai.com/v1/files", formData);
+
+            response.EnsureSuccessStatusCode();
+            return  await response.Content.ReadFromJsonAsync<FileResponse>();
+        }
         public async Task<FileUploadResponse> UploadFile(string id, string url)
         {
 
@@ -167,10 +263,10 @@ namespace Kaizen.Entities
             }
         }
 
-        public async Task<OpenAIRun> CreateRun(string assistant_id, string thread_id)
+        public async Task<OpenAIRun> CreateRun(string assistant_id, string thread_id, string inst=null)
         {
             Console.WriteLine($"Create a run for assistant: {assistant_id}");
-            var response = await _httpClient.PostAsJsonAsync<CreateRunBody>($"https://api.openai.com/v1/threads/{thread_id}/runs", new CreateRunBody { assistant_id = assistant_id });
+            var response = await _httpClient.PostAsJsonAsync<CreateRunBody>($"https://api.openai.com/v1/threads/{thread_id}/runs", new CreateRunBody { assistant_id = assistant_id, instructions=inst });
             if (response.IsSuccessStatusCode)
             {
                 var run = await response.Content.ReadFromJsonAsync<OpenAIRun>();
@@ -305,9 +401,9 @@ namespace Kaizen.Entities
 
 
 
-        public async Task<string> GetAIResponse(string assistantId, string threadId)
+        public async Task<string> GetAIResponse(string assistantId, string threadId, string inst=null)
         {
-            var openAIRun = await CreateRun(assistantId, threadId);
+            var openAIRun = await CreateRun(assistantId, threadId,inst);
 
             while (openAIRun.status != "completed")
             {

@@ -11,7 +11,8 @@
 
         <!-- Prompt Messages -->
         @if (selectedThreadRecord != null)
-        { bool passed = false;
+        {
+            bool passed = false;
             if (messages == null)
             {
                 <LoadingComponent />
@@ -30,7 +31,7 @@
             }
             else
             {
-               
+
                 <div class="flex-1 overflow-y-auto text-sm leading-6 text-slate-900 shadow-md  sm:text-base sm:leading-7">
 
                     @foreach (var message in messages)
@@ -46,7 +47,7 @@
                                     <p class="max-w-3xl">
                                         <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">
                                             @RemoveSourceReference(message.content)</pre>
-                                        <pre class="text-xs italic">@($"{UnixTimeStampToDateTime(message.createdAt).ToString("yyyy-MM-dd HH:mm:ss")} - {UnixTimeStampToDateTime(message.createdAt).Humanize()}") </pre>
+                                        <pre class="text-xs italic">@($"{UnixTimeStampToDateTime(message.createdAt).ToString("yyyy-MM-dd HH:mm:ss")} - {(DateTime.Now - UnixTimeStampToDateTime(message.createdAt)).Humanize()}") </pre>
                                     </p>
 
                                 </div>
@@ -69,12 +70,12 @@
                                 <div class="flex w-full flex-col items-start lg:flex-row lg:justify-between">
                                     <p class="max-w-3xl">
                                         <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">@((message.content == "Media Recieved") ? "" : message.content)
-                                                                                                                            </pre>
+                                                                                                                                            </pre>
                                         @if (message.metadata.ContainsKey("url"))
                                         {
                                             <a href="@message.metadata["url"]" target="_blank" class="text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2 mt-2 mb-2 text-center me-2 mb-2">Open Media</a>
                                         }
-                                        <pre class="text-xs italic @((message.content == "Media Recieved")?"mt-2":"")">@($"{UnixTimeStampToDateTime(message.createdAt).ToString("yyyy-MM-dd HH:mm:ss")} - {UnixTimeStampToDateTime(message.createdAt).Humanize()}") </pre>
+                                        <pre class="text-xs italic @((message.content == "Media Recieved")?"mt-2":"")">@($"{UnixTimeStampToDateTime(message.createdAt).ToString("yyyy-MM-dd HH:mm:ss")} - {(DateTime.Now - UnixTimeStampToDateTime(message.createdAt)).Humanize()}") </pre>
                                     </p>
 
                                 </div>
@@ -98,7 +99,7 @@
                 </div>
             }
 
-            if(passed)
+            if (passed)
             {
                 <button type="button" class="sticky bottom-0 bg-white block w-full rounded-lg border-2 border-dashed border-gray-300 p-2 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                     <span class="mt-2 block text-sm font-semibold text-gray-900">You cannot send the message because 24hrs has been passed</span>
@@ -106,52 +107,52 @@
             }
             else
             {
-                 if (selectedThreadRecord.AiMode)
-            {
-                <button type="button" @onclick="onToggle" class="sticky bottom-0 bg-white block w-full rounded-lg border-2 border-dashed border-gray-300 p-2 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                    <span class="mt-2 block text-sm font-semibold text-gray-900">Click here to join the conversation</span>
-                </button>
-            }
-            else
-            {
-                <div class="sticky bottom-0 flex w-full items-center rounded-b-md border-t border-indigo-300 bg-indigo-600 p-2 text-white">
-                    <label for="chat" class="sr-only">Enter your message</label>
-                    <div>
-                        <button @onclick="onToggle" class="hover:text-indigo-800 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
-                                type="button">
+                if (selectedThreadRecord.AiMode)
+                {
+                    <button type="button" @onclick="onToggle" class="sticky bottom-0 bg-white block w-full rounded-lg border-2 border-dashed border-gray-300 p-2 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        <span class="mt-2 block text-sm font-semibold text-gray-900">Click here to join the conversation</span>
+                    </button>
+                }
+                else
+                {
+                    <div class="sticky bottom-0 flex w-full items-center rounded-b-md border-t border-indigo-300 bg-indigo-600 p-2 text-white">
+                        <label for="chat" class="sr-only">Enter your message</label>
+                        <div>
+                            <button @onclick="onToggle" class="hover:text-indigo-800 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
+                                    type="button">
 
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-                            </svg>
-                            <span class="sr-only">Add</span>
-                        </button>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                                </svg>
+                                <span class="sr-only">Add</span>
+                            </button>
+                        </div>
+                        <input id="chat-input" class="mx-2 flex min-h-full w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-base text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:placeholder-slate-400 dark:focus:border-blue-600 dark:focus:ring-blue-600"
+                               placeholder="Enter your message" />
+                        <div>
+                            <button class="inline-flex hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
+                                    type="button">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-6 w-6"
+                                     aria-hidden="true"
+                                     viewBox="0 0 24 24"
+                                     stroke-width="2"
+                                     stroke="currentColor"
+                                     fill="none"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                    <path d="M10 14l11 -11"></path>
+                                    <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"></path>
+                                </svg>
+                                <span class="sr-only">Send message</span>
+                            </button>
+                        </div>
                     </div>
-                    <input id="chat-input" class="mx-2 flex min-h-full w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-base text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:placeholder-slate-400 dark:focus:border-blue-600 dark:focus:ring-blue-600"
-                           placeholder="Enter your message" />
-                    <div>
-                        <button class="inline-flex hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
-                                type="button">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-6 w-6"
-                                 aria-hidden="true"
-                                 viewBox="0 0 24 24"
-                                 stroke-width="2"
-                                 stroke="currentColor"
-                                 fill="none"
-                                 stroke-linecap="round"
-                                 stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                <path d="M10 14l11 -11"></path>
-                                <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"></path>
-                            </svg>
-                            <span class="sr-only">Send message</span>
-                        </button>
-                    </div>
-                </div>
-            }
+                }
             }
 
-           
+
         }
 
     </div>
@@ -163,14 +164,15 @@
         <li>
             <div class="sticky bottom-0 flex w-full items-center p-2 text-white">
                 <label for="chat" class="sr-only">Search...</label>
-                <input id="search" @bind-value="searchedText" class="mx-2 flex min-h-full w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-base text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:placeholder-slate-400 dark:focus:border-blue-600 dark:focus:ring-blue-600"
+                <input id="search-input" class="mx-2 flex min-h-full w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-base text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:placeholder-slate-400 dark:focus:border-blue-600 dark:focus:ring-blue-600"
                        placeholder="Search..." />
                 <div>
-                    <button class="inline-flex text-blue-600 sm:p-2" @onclick="onSearch"
+                    <button class="inline-flex text-blue-600 sm:p-2" @onclick="onClearSearch"
                             type="button">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 15.75-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.774 4.774ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         </svg>
+
 
                         <span class="sr-only">Search...</span>
                     </button>
@@ -212,7 +214,7 @@
                     default:
                         break;
                 }
-                <li class="force-border p-4 @color   @((selectedThreadRecord!=null && selectedThreadRecord.Id==thread.Id)?" bg-indigo-300 force-text-color text-black":"hover:bg-gray-100 hover:rounded")">
+                <li class="force-border p-4 mt-1 mb-1 @color   @((selectedThreadRecord!=null && selectedThreadRecord.Id==thread.Id)?" bg-indigo-300 force-text-color text-black":"hover:bg-gray-100 hover:rounded")">
 
                     <a href="javascript:void(0)" @onclick="(async ()=>{ await LoadMessages(thread.ThreadId,false);})">
                         <div class="flex items-center gap-x-3">
@@ -267,7 +269,7 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-x-3">
-                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">@thread.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</h3>
+                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">@UTCToDateTime(thread.CreatedAt).ToString("yyyy-MM-dd HH:mm:ss")</h3>
                             <div class="flex-none text-xs text-gray-500">
                                 <div class="mt-1 flex items-center gap-x-1.5">
                                     @if (thread.AiMode)
@@ -332,9 +334,20 @@
     DateTime UnixTimeStampToDateTime(double unixTimeStamp)
     {
         // Unix timestamp is seconds past epoch
-        DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-        dateTime = dateTime.AddSeconds(unixTimeStamp).ToLocalTime();
-        return dateTime;
+        DateTime epochTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+        // Add the Unix timestamp (in seconds) to the epochTime
+        DateTime utcTime = epochTime.AddSeconds(unixTimeStamp);
+        // Convert UTC time to Dubai Time
+        TimeZoneInfo dubaiTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Dubai");
+        DateTime dubaiTime = TimeZoneInfo.ConvertTimeFromUtc(utcTime, dubaiTimeZone);
+        return dubaiTime;
+    }
+
+    DateTime UTCToDateTime(DateTime utcTime)
+    {
+        TimeZoneInfo dubaiTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Dubai");
+        DateTime dubaiTime = TimeZoneInfo.ConvertTimeFromUtc(utcTime, dubaiTimeZone);
+        return dubaiTime;
     }
     protected override async Task OnInitializedAsync()
     {
@@ -494,19 +507,21 @@
 
     }
 
-    async Task onSearch()
-    {
-        threads = null;
-        messages = new List<Conversations>();
-        StateHasChanged();
-        await LoadThreads();
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await LoadThreads();
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("searchThreads", DotNetObjectReference.Create(this));
+                Console.WriteLine("search event registered");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Unable to register search event");
+            }
         }
     }
 
@@ -573,6 +588,24 @@
         await SendMessage(message);
     }
 
+    [JSInvokable]
+    public async void EnterKeyPressedForSearch(string message)
+    {
+        threads = null;
+        searchedText = message;
+        messages = new List<Conversations>();
+        StateHasChanged();
+        await LoadThreads();
+    }
+
+    public async Task onClearSearch()
+    {
+        threads = null;
+        searchedText = string.Empty;
+        messages = new List<Conversations>();
+        StateHasChanged();
+        await LoadThreads();
+    }
 
     public async Task onToggle()
     {

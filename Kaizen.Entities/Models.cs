@@ -4,7 +4,40 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace Kaizen.Entities
 {
     #region for ai
+    public class AssistantFile
+    {
+        public string id { get; set; }
+        public string @object { get; set; }
+        public int created_at { get; set; }
+        public string assistant_id { get; set; }
+    }
 
+    public class OpenAIFile
+    {
+        public string id { get; set; }
+        public string @object { get; set; }
+        public int bytes { get; set; }
+        public int created_at { get; set; }
+        public string assistant_id { get; set; }
+        public string filename { get; set; }
+        public string purpose { get; set; }
+    }
+
+    public class DeleteFileModel
+    {
+        public string id { get; set; }
+        public string @object { get; set; }
+        public bool deleted { get; set; }
+    }
+
+    public class AssistantFilesResponse
+    {
+        public string @object { get; set; }
+        public List<AssistantFile> data { get; set; }
+        public string first_id { get; set; }
+        public string last_id { get; set; }
+        public bool has_more { get; set; }
+    }
 
     public class AssistantRequestBody
     {
@@ -106,7 +139,10 @@ namespace Kaizen.Entities
     public class CreateRunBody
     {
         public string assistant_id { get; set; }
+        public string instructions { get; set; }
     }
+
+
 
     public class OpenAIAssistant
     {
@@ -365,6 +401,32 @@ namespace Kaizen.Entities
     #endregion
 
     #region Models
+
+    public class SheetData
+    {
+        public string name { get; set; }
+        public string data { get; set; }
+    }
+    public class OpenAIFileResponse
+    {
+        public string id { get; set; }
+
+        // Include other properties as needed
+    }
+
+
+
+    public class FileResponse
+    {
+        public string @object { get; set; }
+        public string id { get; set; }
+        public string purpose { get; set; }
+        public string filename { get; set; }
+        public int bytes { get; set; }
+        public int created_at { get; set; }
+        public string status { get; set; }
+        public object status_details { get; set; }
+    }
     public class AIResponse
     {
         public string ThreadId { get; set; }
@@ -423,6 +485,17 @@ namespace Kaizen.Entities
         public string messaging_product { get; set; }
     }
 
+    public class AvailabilityModel
+    {
+        public string Availability { get; set; }
+        public List<FAQModel> FAQs { get; set; } = new List<FAQModel>();
+    }
+
+    public class FAQModel
+    {
+        public string Question { get; set; }
+        public string Answer { get; set; }
+    }
 
     public enum ConversationPlatform
     {
@@ -434,6 +507,19 @@ namespace Kaizen.Entities
 
 
     #region Db Entities
+
+    public class GoogleSpreadSheet
+    {
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; }
+        public string SpreadSheetId { get; set; }
+        public string SpreadName { get; set; }
+        public long SheetId { get; set; }
+        public string Description { get; set; }
+        public string SheetData { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    }
     public class ThreadRecord
     {
         [BsonId]
@@ -453,6 +539,7 @@ namespace Kaizen.Entities
         public bool Visible { get; set; } = true;
         public bool Deleted { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string PropRef { get; set; }
     }
     public enum LastMesageBy
     {

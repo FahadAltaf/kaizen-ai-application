@@ -1,0 +1,71 @@
+﻿@page "/leasing"
+@inject HttpClient _httpClient
+
+@if (Sheets != null)
+{
+    <div class="mt-8 flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Spreadsheet Id</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Spreadsheet Name</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Updated At</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Sheet Id</th>
+                                <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                                    <span class="sr-only">Action</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            @foreach (var sheet in Sheets)
+                            {
+                                <tr>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@sheet.SpreadSheetId</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@sheet.SpreadName</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@(sheet.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss") + $"({sheet.UpdatedAt.Humanize()})")</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@sheet.SheetId</td>
+
+                                </tr>
+
+
+                            }
+
+                            <!-- More people... -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@code {
+    public List<GoogleSpreadSheet> Sheets { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (firstRender)
+            {
+                var response = await _httpClient.GetFromJsonAsync<APIGeneralResponse<List<GoogleSpreadSheet>>>("api/LoadSheets?code=7Q7Uo9EsyC4jHnqocWFrwrYm-Cc94NHjHgYG4-wt2X_8AzFuHQ86RA==");
+                if (response != null)
+                {
+                    Sheets = response.Data;
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+}

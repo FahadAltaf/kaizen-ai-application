@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ThirdParty.BouncyCastle.Utilities.IO.Pem;
 using System.Net.NetworkInformation;
+using Azure;
 
 namespace Kaizen.Entities
 {
@@ -44,6 +45,98 @@ namespace Kaizen.Entities
             var collection = database.GetCollection<AssistantRecord>("Assistants");
             await collection.InsertOneAsync(entry);
             return entry;
+        }
+
+        public async Task<GoogleSpreadSheet> CreateSheetRecord(GoogleSpreadSheet entry)
+        {
+            var collection = database.GetCollection<GoogleSpreadSheet>("Sheets");
+            await collection.InsertOneAsync(entry);
+            return entry;
+        }
+
+        public async Task<GoogleSpreadSheet> UpdateSheet(GoogleSpreadSheet entry)
+        {
+            var collection = database.GetCollection<GoogleSpreadSheet>("Sheets");
+            var filter = Builders<GoogleSpreadSheet>.Filter.Eq(x=>x.Id,entry.Id);
+            var update = Builders<GoogleSpreadSheet>.Update.Set(x => x.SheetData, entry.SheetData).Set(x => x.SheetData, entry.SheetData).Set(x=>x.UpdatedAt,entry.UpdatedAt);
+            await collection.UpdateOneAsync(filter, update);  
+            return entry;
+        }
+
+        public async Task<GoogleSpreadSheet> GetSheetRecord(string sid,long id)
+        {
+            var collection = database.GetCollection<GoogleSpreadSheet>("Sheets");
+           return await collection.Find(x=>x.SpreadSheetId==sid && x.SheetId==id).FirstOrDefaultAsync();
+           
+        }
+
+        public async Task<List<GoogleSpreadSheet>> GetSheets()
+        {
+            var collection = database.GetCollection<GoogleSpreadSheet>("Sheets");
+            return await collection.Find(_=>true).ToListAsync();
+
+        }
+
+        public async Task<APIGeneralResponse<AvailabilityModel>> RetriveSheets(string text1)
+        {
+            var collection = database.GetCollection<GoogleSpreadSheet>("Sheets");
+            var filter = Builders<GoogleSpreadSheet>.Filter.Regex(x => x.SheetData, new BsonRegularExpression(text1));
+            var data = await collection.Find(filter).FirstOrDefaultAsync();
+            APIGeneralResponse<AvailabilityModel> response = new APIGeneralResponse<AvailabilityModel>();
+
+
+            if (data != null)
+            {
+                var text = data.SheetData;
+                var lines = text.Split("\r\n");
+                List<string> availability = new List<string>();
+                List<string> faqs = new List<string>();
+
+                string steps = "avail";
+                foreach (var item in lines)
+                {
+                    if (item.StartsWith("FAQs"))
+                    {
+                        steps = "faq";
+                        continue;
+                    }
+                    else if (item.StartsWith("Internal"))
+                    {
+                        steps = "internal";
+                        continue;
+                    }
+                    switch (steps)
+                    {
+                        case "avail":
+                            availability.Add(item);
+                            break;
+                        case "faq":
+                            faqs.Add(item);
+                            break;
+                        case "internal":
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                List<FAQModel> models = new List<FAQModel>();
+
+                foreach (var item in faqs)
+                {
+                    var parts = item.Split(";");
+                    models.Add(new FAQModel { Question = parts[0], Answer = parts[1] });
+                }
+                response.Data = new AvailabilityModel { Availability = string.Join("\r\n", availability.Take(2)), FAQs = models };
+                response.Message = "OK";
+                response.Status = true;
+            }
+            else
+            {
+                response.Message = "NOT AVAILABLE";
+            }
+            return response;
+
         }
 
         public async Task<ThreadRecord> CreateThreadRecord(ThreadRecord record)
