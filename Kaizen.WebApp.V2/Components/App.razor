@@ -1,0 +1,143 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <style>
+        .force-border {
+            border-radius: 10px;
+        }
+
+        .force-text-color * {
+            color: inherit !important;
+        }
+    </style>
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes />
+    <script>
+        function GetUrl() {
+            var myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer EAAMUZADUs6M4BO10RURA9urY500LrBCTR8HVXDdpFwPnZBt2nQMDwvkQ7nS81bzuj4ANASAtLY5bpdmcpLhyHu7UdkuGvB7BiusRY1YiZAYwRQZBIQU6iuClpDXVePhUASWZAysZB4MJ3BfulYBnvEAnTZBvttDVvMnDHnUKEQH1ZAwW68IY8XP9MyTTucpS73tC");
+
+            var requestOptions = {
+                method: 'GET',
+                headers: myHeaders,
+                redirect: 'follow'
+            };
+
+            fetch("https://graph.facebook.com/v18.0/1583555272051410", requestOptions)
+                .then(response => response.text())
+                .then(result => {
+                    var obj = JSON.parse(result);
+                    console.log(obj.url);
+                    GetImage(obj.url);
+                })
+                .catch(error => console.log('error', error));
+
+        }
+
+        function GetImage(url) {
+            var myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer EAAMUZADUs6M4BO10RURA9urY500LrBCTR8HVXDdpFwPnZBt2nQMDwvkQ7nS81bzuj4ANASAtLY5bpdmcpLhyHu7UdkuGvB7BiusRY1YiZAYwRQZBIQU6iuClpDXVePhUASWZAysZB4MJ3BfulYBnvEAnTZBvttDVvMnDHnUKEQH1ZAwW68IY8XP9MyTTucpS73tC");
+
+            var requestOptions = {
+                method: 'GET',
+                headers: myHeaders,
+                redirect: 'follow'
+            };
+
+            fetch(url, requestOptions)
+                .then(response => response.text())
+                .then(result => console.log(result))
+                .catch(error => console.log('error', error));
+        }
+        function scrollToBottom(element) {
+            console.log("scrolling...")
+            if (element.scrollHeight > element.clientHeight) {
+                console.log("Element is scrollable. Scrolling to bottom...");
+                element.scrollTop = element.scrollHeight;
+            } else {
+                console.log("Element is not scrollable. No action taken.");
+            }
+        }
+
+        function playNotificationSound(val) {
+            switch (val) {
+                case 0:
+                    var audio = new Audio('pop.mp3');
+                    audio.play().catch(error => {
+                        console.error("Audio playback failed:", error);
+                    });
+                    break;
+                case 1:
+                    var audio1 = new Audio('tone.wav');
+                    audio1.play().catch(error => {
+                        console.error("Audio playback failed:", error);
+                    });
+                    break;
+                case 2:
+                    var audio2 = new Audio('new.wav');
+                    audio2.play().catch(error => {
+                        console.error("Audio playback failed:", error);
+                    });
+                    break;
+                default:
+                    break;
+            }
+
+        }
+
+        window.websocketInterop = {
+            connect: function (dotNetObject, url) {
+                var socket = new WebSocket(url);
+
+                socket.onmessage = function (event) {
+                    console.log(event);
+                    dotNetObject.invokeMethodAsync('ReceiveMessage', event.data);
+                };
+
+                socket.onopen = function (event) {
+                    console.log('WebSocket connection established');
+                };
+
+                socket.onerror = function (event) {
+                    console.error('WebSocket error observed:', event);
+                };
+
+                socket.onclose = function (event) {
+                    console.log('WebSocket connection closed');
+                };
+            }
+        };
+
+        function initializeChatInput(dotNetHelper) {
+            document.getElementById('chat-input').addEventListener('keypress', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    dotNetHelper.invokeMethodAsync('EnterKeyPressed', document.getElementById('chat-input').value);
+                    document.getElementById('chat-input').value = '';
+                }
+            });
+        }
+
+        function searchThreads(dotNetHelper) {
+            document.getElementById('search-input').addEventListener('keypress', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    dotNetHelper.invokeMethodAsync('EnterKeyPressedForSearch', document.getElementById('search-input').value);
+                    document.getElementById('search-input').value = '';
+                }
+            });
+        }
+    </script>
+    <script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>

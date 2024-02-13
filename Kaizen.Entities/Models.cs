@@ -442,6 +442,7 @@ namespace Kaizen.Entities
         //public bool AiMode { get; set; }
         public string content { get; set; }
         public string role { get; set; }
+        public string user { get; set; }
     }
     public class APIGeneralResponse<T>
     {
@@ -530,6 +531,7 @@ namespace Kaizen.Entities
         public ConversationPlatform Platform { get; set; }
         public string PlatformUserId { get; set; }
         public bool AiMode { get; set; }
+        public string Agent { get; set; }
         public DateTime LastActivityAt { get; set; }
         public LastMesageBy LastMesageBy { get; set; }
         public string Alias { get; set; }

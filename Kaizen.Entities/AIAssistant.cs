@@ -28,7 +28,7 @@ namespace Kaizen.Entities
             Console.WriteLine($"user: {request.Message}");
 
 
-            await AddMessageToThread(request);
+            await AddMessageToThread(request,new Dictionary<string, string> { });
 
             var openAIRun = await CreateRun(request.Assistant_Id, request.Thread_Id);
 
@@ -232,7 +232,7 @@ namespace Kaizen.Entities
             throw new Exception($"Unable to fetch the bot details. Reason: " + response.Content);
         }
 
-        public async Task<OpenAIMessage> AddMessageToThread(MessageRequest request, string role = "user")
+        public async Task<OpenAIMessage> AddMessageToThread(MessageRequest request,Dictionary<string,string> passedmetadata, string role = "user")
         {
         task:
             try
@@ -242,6 +242,10 @@ namespace Kaizen.Entities
                 if (!string.IsNullOrEmpty(request.docId))
                 {
                     metadata.Add("url", request.docId);
+                }
+                foreach (var m in passedmetadata)
+                {
+                    metadata.Add(m.Key, m.Value);
                 }
                 Console.WriteLine($"Adding message to thread: {request.Thread_Id}");
                 var response = await _httpClient.PostAsJsonAsync<MessageBody>($"https://api.openai.com/v1/threads/{request.Thread_Id}/messages", new MessageBody { content = request.Message, metadata = metadata });

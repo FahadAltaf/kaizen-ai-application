@@ -85,7 +85,7 @@ namespace Kaizen.API
                             })));
 
                             // Get AI response for the new thread
-                            await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = openAiThread.id, docId = data.docId });
+                            await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = openAiThread.id, docId = data.docId }, new Dictionary<string, string> { });
                             await _webPubSubService.MessageRecieved(openAiThread.id);
 
                             data.aiMessage = "";//await _aIAssistant.GetAIResponse(assistantId, openAiThread.id);
@@ -98,7 +98,7 @@ namespace Kaizen.API
                             if (thread.AiMode)
                             {
                                 // Get AI response if in AI mode
-                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = thread.ThreadId, docId = data.docId });
+                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = thread.ThreadId, docId = data.docId }, new Dictionary<string, string> { });
                                 await _webPubSubService.MessageRecieved(thread.ThreadId);
                                 //data.aiMessage = await _aIAssistant.GetAIResponse(thread.AssistantId, thread.ThreadId);
                                 data.aiThread = thread.ThreadId;
@@ -107,7 +107,7 @@ namespace Kaizen.API
                             {
                                 by = LastMesageBy.User;
                                 // Add message to thread if not in AI mode
-                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId, docId = data.docId });
+                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId, docId = data.docId }, new Dictionary<string, string> { });
                                 await _webPubSubService.MessageRecieved(thread.ThreadId);
                             }
 

@@ -155,11 +155,11 @@ namespace Kaizen.Entities
                 return entry;
         }
 
-        public async Task UpdateThreadRecord(string threadId, bool aimode)
+        public async Task UpdateThreadRecord(string threadId, bool aimode, string agent="")
         {
             var collection = database.GetCollection<ThreadRecord>("Threads");
             var filter = Builders<ThreadRecord>.Filter.Eq(x => x.ThreadId, threadId);
-            var update = Builders<ThreadRecord>.Update.Set(x => x.AiMode, aimode);
+            var update = Builders<ThreadRecord>.Update.Set(x => x.AiMode, aimode).Set(x => x.Agent, agent);
             await collection.UpdateOneAsync(filter, update);
         }
 
@@ -199,17 +199,21 @@ namespace Kaizen.Entities
         {
             var collection = database.GetCollection<ThreadRecord>("Threads");
             var filter = Builders<ThreadRecord>.Filter.Eq(x => x.Id, record.Id);
-            var update = Builders<ThreadRecord>.Update.Set(x => x.Alias, record.Alias).Set(x => x.Visible, record.Visible).Set(x => x.Deleted, record.Deleted);
+            var update = Builders<ThreadRecord>.Update.Set(x => x.Alias, record.Alias)
+                .Set(x => x.Agent, record.Agent)
+                .Set(x => x.Visible, record.Visible).Set(x => x.Deleted, record.Deleted);
             await collection.UpdateOneAsync(filter, update);
             return record;
         }
 
         public async Task<List<ThreadRecord>> AssistantThreads(string assistantId,string text="")
         {
+            var twoWeeksAgo = DateTime.UtcNow.AddDays(-14);
             if (string.IsNullOrEmpty(assistantId))
                 throw new Exception("AI assistant id is not provided");
             var collection = database.GetCollection<ThreadRecord>("Threads");
-            var filter =(string.IsNullOrEmpty(text))? Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.Deleted, false):
+            var filter =(string.IsNullOrEmpty(text))? 
+                Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.Deleted, false) & Builders<ThreadRecord>.Filter.Gte(x => x.LastActivityAt, twoWeeksAgo) :
                 Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.Deleted, false) & (Builders<ThreadRecord>.Filter.Regex(x=>x.PlatformUserId, new BsonRegularExpression(text, "i")) | Builders<ThreadRecord>.Filter.Regex(x => x.Alias, new BsonRegularExpression(text, "i")));
             var all = await collection.Find(filter).ToListAsync();
             var groups = all.GroupBy(x => x.PlatformUserId);

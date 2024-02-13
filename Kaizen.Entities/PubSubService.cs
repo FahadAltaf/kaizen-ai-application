@@ -13,6 +13,7 @@ namespace Kaizen.Entities
         Task NeedAssistance(string threadId);
         Task NewMessage(string threadId);
         Task InquiryRecieved(string threadId);
+        Task AgentJoined(string threadId);
     }
 
     public class WebPubSubService : IWebPubSubService
@@ -28,7 +29,10 @@ namespace Kaizen.Entities
         {
           await  _client.SendToAllAsync($"messageRecieved-{threadId}", Azure.Core.ContentType.TextPlain);
         }
-
+        public async Task AgentJoined(string threadId)
+        {
+            await _client.SendToAllAsync($"agentJoined-{threadId}", Azure.Core.ContentType.TextPlain);
+        }
         public async Task InquiryRecieved(string threadId)
         {
             await _client.SendToAllAsync($"inquiryRecieved-{threadId}", Azure.Core.ContentType.TextPlain);

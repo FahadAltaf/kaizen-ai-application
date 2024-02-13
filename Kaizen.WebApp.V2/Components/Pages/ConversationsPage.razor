@@ -1,12 +1,19 @@
 ﻿@page "/conversations/{assistantId}"
+@using Microsoft.AspNetCore.Authorization
 @using System.Text.RegularExpressions
 @using Azure.Messaging.WebPubSub
+@using System.Text
+@using System.Text.Json
 @inject HttpClient client
 @inject IJSRuntime JSRuntime
 @inject IConfiguration Configuration
+@rendermode InteractiveServer
 
+
+@attribute [Authorize]
 
 <main class="lg:pl-72 flex flex-col h-screen">
+    
     <div class="xl:pl-96 flex-1 overflow-y-auto" @ref="messagesContainer">
 
         <!-- Prompt Messages -->
@@ -15,7 +22,7 @@
             bool passed = false;
             if (messages == null)
             {
-                <LoadingComponent />
+                <LoadingComponent message="Loading messages" />
             }
             else if (messages.Count == 0)
             {
@@ -47,7 +54,12 @@
                                     <p class="max-w-3xl">
                                         <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">
                                             @RemoveSourceReference(message.content)</pre>
-                                        <pre class="text-xs italic">@($"{UnixTimeStampToDateTime(message.createdAt).ToString("yyyy-MM-dd HH:mm:ss")} - {(DateTime.Now - UnixTimeStampToDateTime(message.createdAt)).Humanize()}") </pre>
+                                        <pre class="text-xs italic">@($"{UnixTimeStampToDateTime(message.createdAt).ToString("yyyy-MM-dd HH:mm:ss")} - {(UTCToDateTime(DateTime.UtcNow) - UnixTimeStampToDateTime(message.createdAt)).Humanize()}") </pre>
+                                        @if (message.metadata.Count>1)
+                                        {
+                                            <pre><strong>Sent By: </strong>@message.metadata.GetValueOrDefault("Username")</pre>
+                                        }
+                                       
                                     </p>
 
                                 </div>
@@ -55,7 +67,7 @@
                         }
                         else
                         {
-                            if ((DateTime.UtcNow - UnixTimeStampToDateTime(message.createdAt)).TotalHours > 24)
+                            if ((UTCToDateTime(DateTime.UtcNow) - UnixTimeStampToDateTime(message.createdAt)).TotalHours > 24)
                             {
                                 passed = true;
                             }
@@ -70,12 +82,12 @@
                                 <div class="flex w-full flex-col items-start lg:flex-row lg:justify-between">
                                     <p class="max-w-3xl">
                                         <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">@((message.content == "Media Recieved") ? "" : message.content)
-                                                                                                                                            </pre>
+                                                                                                                                                                                                                                                                            </pre>
                                         @if (message.metadata.ContainsKey("url"))
                                         {
                                             <a href="@message.metadata["url"]" target="_blank" class="text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2 mt-2 mb-2 text-center me-2 mb-2">Open Media</a>
                                         }
-                                        <pre class="text-xs italic @((message.content == "Media Recieved")?"mt-2":"")">@($"{UnixTimeStampToDateTime(message.createdAt).ToString("yyyy-MM-dd HH:mm:ss")} - {(DateTime.Now - UnixTimeStampToDateTime(message.createdAt)).Humanize()}") </pre>
+                                        <pre class="text-xs italic @((message.content == "Media Recieved")?"mt-2":"")">@($"{UnixTimeStampToDateTime(message.createdAt).ToString("yyyy-MM-dd HH:mm:ss")} - {(UTCToDateTime(DateTime.UtcNow) - UnixTimeStampToDateTime(message.createdAt)).Humanize()}") </pre>
                                     </p>
 
                                 </div>
@@ -91,7 +103,7 @@
 
                             <div class="flex w-full flex-col items-start lg:flex-row lg:justify-between">
                                 <p class="max-w-3xl">
-                                    <LoadingComponent />     <pre style="font-family:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';white-space: pre-wrap;">Sending...</pre>
+                                    <LoadingComponent message="Sending" />
                                 </p>
                             </div>
                         </div>
@@ -107,6 +119,7 @@
             }
             else
             {
+                
                 if (selectedThreadRecord.AiMode)
                 {
                     <button type="button" @onclick="onToggle" class="sticky bottom-0 bg-white block w-full rounded-lg border-2 border-dashed border-gray-300 p-2 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
@@ -115,40 +128,51 @@
                 }
                 else
                 {
-                    <div class="sticky bottom-0 flex w-full items-center rounded-b-md border-t border-indigo-300 bg-indigo-600 p-2 text-white">
-                        <label for="chat" class="sr-only">Enter your message</label>
-                        <div>
-                            <button @onclick="onToggle" class="hover:text-indigo-800 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
-                                    type="button">
+                    if (!string.IsNullOrEmpty(selectedThreadRecord.Agent)&& selectedThreadRecord.Agent != username)
+                    {
+                        <button type="button" @onclick="onTakeOver" class="sticky bottom-0 bg-white block w-full rounded-lg border-2 border-dashed border-gray-300 p-2 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            <span class="mt-2 block text-sm font-semibold text-gray-900">@selectedThreadRecord.Agent already take cover the conversation. Would you like to take over? Click here
+                            </span>
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="sticky bottom-0 flex w-full items-center rounded-b-md border-t border-indigo-300 bg-indigo-600 p-2 text-white">
+                            <label for="chat" class="sr-only">Enter your message</label>
+                            <div>
+                                <button @onclick="onToggle" class="hover:text-indigo-800 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
+                                        type="button">
 
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-                                </svg>
-                                <span class="sr-only">Add</span>
-                            </button>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                                    </svg>
+                                    <span class="sr-only">Add</span>
+                                </button>
+                            </div>
+                            <input id="chat-input" class="mx-2 flex min-h-full w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-base text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:placeholder-slate-400 dark:focus:border-blue-600 dark:focus:ring-blue-600"
+                                   placeholder="Enter your message" />
+                            <div>
+                                <button class="inline-flex hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
+                                        type="button">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="h-6 w-6"
+                                         aria-hidden="true"
+                                         viewBox="0 0 24 24"
+                                         stroke-width="2"
+                                         stroke="currentColor"
+                                         fill="none"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <path d="M10 14l11 -11"></path>
+                                        <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"></path>
+                                    </svg>
+                                    <span class="sr-only">Send message</span>
+                                </button>
+                            </div>
                         </div>
-                        <input id="chat-input" class="mx-2 flex min-h-full w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-base text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:placeholder-slate-400 dark:focus:border-blue-600 dark:focus:ring-blue-600"
-                               placeholder="Enter your message" />
-                        <div>
-                            <button class="inline-flex hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-600 sm:p-2"
-                                    type="button">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     class="h-6 w-6"
-                                     aria-hidden="true"
-                                     viewBox="0 0 24 24"
-                                     stroke-width="2"
-                                     stroke="currentColor"
-                                     fill="none"
-                                     stroke-linecap="round"
-                                     stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                    <path d="M10 14l11 -11"></path>
-                                    <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"></path>
-                                </svg>
-                                <span class="sr-only">Send message</span>
-                            </button>
-                        </div>
-                    </div>
+                    }
+                   
                 }
             }
 
@@ -181,7 +205,7 @@
         </li>
         @if (threads == null)
         {
-            <LoadingComponent />
+            <LoadingComponent message="Loading Conversations" />
         }
         else if (threads.Count == 0)
         {
@@ -217,97 +241,102 @@
                 <li class="force-border p-4 mt-1 mb-1 @color   @((selectedThreadRecord!=null && selectedThreadRecord.Id==thread.Id)?" bg-indigo-300 force-text-color text-black":"hover:bg-gray-100 hover:rounded")">
 
                     <a href="javascript:void(0)" @onclick="(async ()=>{ await LoadMessages(thread.ThreadId,false);})">
-                        <div class="flex items-center gap-x-3">
+                       
+                           
+                            <div>
+                                <div class="flex items-center gap-x-3">
 
 
-                            @if (thread.HasNewMessages)
-                            {
-                                <span class="relative flex h-3 w-3">
-                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                </span>
-                            }
-
-                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-900">@((string.IsNullOrEmpty(thread.Alias) ? "No Name" : $"{thread.Alias}"))</h3>
-                            <div class="flex-none text-xs text-gray-500">
-                                <div class="mt-1 flex items-center gap-x-1.5">
-                                    @thread.LastActivityAt.Humanize()
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-x-3">
-                            @if (thread.NeedsAssistance)
-                            {
-                                <span class="relative flex h-3 w-3">
-                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
-                                </span>
-                            }
-
-
-
-                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-900">@thread.PlatformUserId</h3>
-                            <div class="flex-none text-xs text-gray-500">
-                                <div class="mt-1 flex items-center gap-x-1.5">
-                                    @if ((DateTime.UtcNow - thread.LastActivityAt).TotalMinutes < 15)
+                                    @if (thread.HasNewMessages)
                                     {
-                                        <div class="flex-none rounded-full bg-emerald-500/20 p-1">
-                                            <div class="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
+                                        <span class="relative flex h-3 w-3">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                        </span>
+                                    }
+
+                                    <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-900">@((string.IsNullOrEmpty(thread.Alias) ? "No Name" : $"{thread.Alias}"))</h3>
+                                    <div class="flex-none text-xs text-gray-500">
+                                        <div class="mt-1 flex items-center gap-x-1.5">
+                                            @thread.LastActivityAt.Humanize()
                                         </div>
-                                        <p class="text-xs leading-5 text-gray-500">Online</p>
-                                    }
-                                    else
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-x-3">
+                                    @if (thread.NeedsAssistance)
                                     {
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-                                        </svg>
-
-                                        <p class="text-xs leading-5 text-gray-500">Offline</p>
+                                        <span class="relative flex h-3 w-3">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                                        </span>
                                     }
 
+
+
+                                    <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-900">@thread.PlatformUserId</h3>
+                                    <div class="flex-none text-xs text-gray-500">
+                                        <div class="mt-1 flex items-center gap-x-1.5">
+                                            @if ((UTCToDateTime(DateTime.UtcNow) - thread.LastActivityAt).TotalMinutes < 15)
+                                            {
+                                                <div class="flex-none rounded-full bg-emerald-500/20 p-1">
+                                                    <div class="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
+                                                </div>
+                                                <p class="text-xs leading-5 text-gray-500">Online</p>
+                                            }
+                                            else
+                                            {
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                                                </svg>
+
+                                                <p class="text-xs leading-5 text-gray-500">Offline</p>
+                                            }
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-x-3">
+                                    <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">@UTCToDateTime(thread.CreatedAt).ToString("yyyy-MM-dd HH:mm:ss")</h3>
+                                    <div class="flex-none text-xs text-gray-500">
+                                        <div class="mt-1 flex items-center gap-x-1.5">
+                                            @if (thread.AiMode)
+                                            {
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-indigo-600">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                                                </svg>
+                                                <span class="text-indigo-600">AI bot</span>
+                                            }
+                                            else
+                                            {
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                </svg>
+
+                                                <span>Agent</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-x-3">
+                                    <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">@thread.Agent</h3>
+                                    <div class="flex-none text-xs text-gray-500">
+                                        <div class="mt-1 flex items-center gap-x-1.5">
+                                            @if (thread.IsLeasing)
+                                            {
+                                                <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Leasing</span>
+                                            }
+                                            else
+                                            {
+
+                                                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">UM</span>
+                                            }
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="flex items-center gap-x-3">
-                            <h3 class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">@UTCToDateTime(thread.CreatedAt).ToString("yyyy-MM-dd HH:mm:ss")</h3>
-                            <div class="flex-none text-xs text-gray-500">
-                                <div class="mt-1 flex items-center gap-x-1.5">
-                                    @if (thread.AiMode)
-                                    {
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-indigo-600">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-                                        </svg>
-                                        <span class="text-indigo-600">AI bot</span>
-                                    }
-                                    else
-                                    {
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                        </svg>
-
-                                        <span>Agent</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-x-3">
-                            <div class="flex-auto truncate text-sm font-semibold leading-6 text-gray-500">
-                                @thread.Agent
-                            </div>
-                            <div class="flex-none text-xs text-gray-500">
-                                <div class="mt-1 flex items-center gap-x-1.5">
-                                    @if (thread.IsLeasing)
-                                    {
-                                        <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Leasing</span>
-                                    }
-                                    else
-                                    {
-
-                                        <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">UM</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
+                      
+                      
+                       
                     </a>
 
                 </li>
@@ -332,6 +361,10 @@
     private WebPubSubServiceClient serviceClient;
     private string hubName = "kaizen"; // Your hub name
     public bool sending { get; set; }
+    string username = "";
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
     DateTime UnixTimeStampToDateTime(double unixTimeStamp)
     {
         // Unix timestamp is seconds past epoch
@@ -339,29 +372,24 @@
         // Add the Unix timestamp (in seconds) to the epochTime
         DateTime utcTime = epochTime.AddSeconds(unixTimeStamp);
         // Convert UTC time to Dubai Time
-        TimeZoneInfo dubaiTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Dubai");
+        TimeZoneInfo dubaiTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Arabian Standard Time");
         DateTime dubaiTime = TimeZoneInfo.ConvertTimeFromUtc(utcTime, dubaiTimeZone);
         return dubaiTime;
     }
 
     DateTime UTCToDateTime(DateTime utcTime)
     {
-        TimeZoneInfo dubaiTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Dubai");
+        TimeZoneInfo dubaiTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Arabian Standard Time");
+
+        //dubaiTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Dubai");
+
+
         DateTime dubaiTime = TimeZoneInfo.ConvertTimeFromUtc(utcTime, dubaiTimeZone);
         return dubaiTime;
     }
-    protected override async Task OnInitializedAsync()
-    {
-        serviceClient = new WebPubSubServiceClient("Endpoint=https://kaizen.webpubsub.azure.com;AccessKey=qkNfsaNwCl4oPuYWg/fUK0pNHpvPUUkwHi+cWHq48y8=;Version=1.0;", hubName);
-        var url = serviceClient.GetClientAccessUri();
-
-        await JSRuntime.InvokeVoidAsync("websocketInterop.connect", DotNetObjectReference.Create(this), url);
-
-    }
-
 
     [JSInvokable]
-    public async void ReceiveMessage(string message)
+    public async Task ReceiveMessage(string message)
     {
         string[] parts = message.Split("-");
         switch (parts[0])
@@ -373,6 +401,30 @@
                     await LoadMessages(selectedThreadRecord.ThreadId, true);
                     await PlaySoundAsync(0);
 
+                }
+                break;
+            case "agentJoined":
+
+                try
+                {
+                    var response = await client.GetFromJsonAsync < APIGeneralResponse < ThreadRecord >> ($"api/thread/{parts[1]}?code={APICode}");
+                    if (response.Status)
+                    {
+
+                        var entry =threads.FirstOrDefault(x => x.ThreadId == parts[1]);
+                        if (entry != null)
+                        {
+                            entry.Agent = entry.Agent;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+                finally
+                {
+                    StateHasChanged();
                 }
                 break;
             case "needAssistance":
@@ -400,10 +452,7 @@
             selectedThreadRecord = threads.FirstOrDefault(x => x.ThreadId == threadId);
             StateHasChanged();
 
-            if (selectedThreadRecord.AiMode)
-            {
-                Registered = false;
-            }
+
 
             var response = await client.GetFromJsonAsync<APIGeneralResponse<List<Conversations>>>($"api/Conversation/{threadId}?code={APICode}");
             if (response.Status)
@@ -516,6 +565,15 @@
             await LoadThreads();
             try
             {
+                if (authenticationState is not null)
+                {
+                    var authState = await authenticationState;
+                    username = authState?.User.Identity.Name;
+                }
+                serviceClient = new WebPubSubServiceClient("Endpoint=https://kaizen.webpubsub.azure.com;AccessKey=qkNfsaNwCl4oPuYWg/fUK0pNHpvPUUkwHi+cWHq48y8=;Version=1.0;", hubName);
+                var url = serviceClient.GetClientAccessUri();
+
+                await JSRuntime.InvokeVoidAsync("websocketInterop.connect", DotNetObjectReference.Create(this), url);
                 await JSRuntime.InvokeVoidAsync("searchThreads", DotNetObjectReference.Create(this));
                 Console.WriteLine("search event registered");
             }
@@ -546,19 +604,24 @@
                     { createdAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(), content = message, role = "agent" };
                 conversation.metadata.Add("role", "agent");
                 messages.Add(conversation);
-
-
-                var response = await client.PostAsJsonAsync($"api/Chat?code={APICode}", new ConversationModel
+                var last= messages.LastOrDefault(x => x.metadata.Any(m => m.Key == "Username"));
+                var strContent = new StringContent(JsonSerializer.Serialize(new ConversationModel
 
                     {
                         AssistantId = selectedThreadRecord.AssistantId,
                         content = conversation.content,
                         role = "agent",
-                        ThreadId = selectedThreadRecord.ThreadId
-                    });
+                        user = username,
+
+                ThreadId = selectedThreadRecord.ThreadId
+                    }), Encoding.UTF8, "application/json");
+                var response = await client.PostAsync($"api/Chat?code={APICode}", strContent);
                 if (response.IsSuccessStatusCode)
                 {
+                    var content = response.Content.ReadAsStringAsync();
+                    Console.WriteLine(content);
                     sending = false;
+                    selectedThreadRecord.Agent = username;
                     await LoadMessages(selectedThreadRecord.ThreadId, true);
 
                 }
@@ -594,18 +657,26 @@
     {
         threads = null;
         searchedText = message;
-        messages = new List<Conversations>();
+        selectedThreadRecord = null;
+        messages = null;
+        Registered = false;
         StateHasChanged();
         await LoadThreads();
     }
 
     public async Task onClearSearch()
     {
-        threads = null;
-        searchedText = string.Empty;
-        messages = new List<Conversations>();
-        StateHasChanged();
-        await LoadThreads();
+        if (!string.IsNullOrEmpty(searchedText))
+        {
+            threads = null;
+            searchedText = string.Empty;
+            messages = null;
+            selectedThreadRecord = null;
+            Registered = false;
+            StateHasChanged();
+            await LoadThreads();
+        }
+
     }
 
     public async Task onToggle()
@@ -613,20 +684,42 @@
         try
         {
             var response = await client.GetFromJsonAsync<APIGeneralResponse<bool>>($"api/Switch/{selectedThreadRecord.ThreadId}/{!selectedThreadRecord.AiMode}?code={APICode}");
-            if (response.Status)
+            if (response != null && response.Status)
             {
-                var response1 = await client.GetFromJsonAsync<APIGeneralResponse<List<ThreadRecord>>>($"api/Threads/{assistantId}?code={APICode}");
-                threads = response1.Data;
-                await LoadMessages(selectedThreadRecord.ThreadId, true);
-
+                selectedThreadRecord.AiMode = !selectedThreadRecord.AiMode;
             }
+
+
+
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
         }
-    }
+        finally
+        {
+            StateHasChanged();
+            if (!selectedThreadRecord.AiMode)
+            {
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("initializeChatInput", DotNetObjectReference.Create(this));
+                    Registered = true;
+                    Console.WriteLine("event registered");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Unable to register");
+                }
+            }
+            else
+            {
+                Registered = false;
+            }
 
+        }
+
+    }
     public async Task onMarkAsRead()
     {
         try
@@ -636,6 +729,31 @@
             {
                 selectedThreadRecord.HasNewMessages = false;
             }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    public async Task onTakeOver()
+    {
+        try
+        {
+            var obj = JsonSerializer.Deserialize<ThreadRecord>(JsonSerializer.Serialize(selectedThreadRecord));
+            obj.Agent = username;
+            var strContent = new StringContent(JsonSerializer.Serialize(obj), Encoding.UTF8, "application/json");
+            var response = await client.PostAsync($"api/UpdateRecord?code={APICode}",strContent);
+            if (response!=null)
+            {
+                var content = await response.Content.ReadFromJsonAsync<APIGeneralResponse<ThreadRecord>>();
+                selectedThreadRecord.Agent = content.Data.Agent;
+            }
+         
         }
         catch (Exception ex)
         {

@@ -91,7 +91,7 @@ namespace Kaizen.API
                     }))) ;
 
                     // Get AI response for the new thread
-                    await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = openAiThread.id });
+                    await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = openAiThread.id }, new Dictionary<string, string> { });
                     await _webPubSubService.MessageRecieved(openAiThread.id);
                     if (isLeasing)
                     {
@@ -105,7 +105,7 @@ namespace Kaizen.API
                             await Task.Delay(1000);
                             data.aiMessage = IsOfficeHours(_logger) ? "Hello! Welcome to Kaizen. Thank you for your interest in our property. I have forwarded your question to one of our agents. Someone will be soon in contact with you."
                                 : "Hello,\r\nThank you for reaching out to us! Our office hours are from 9 am to 6 pm, Monday to Saturday. Please note that our team is currently away. Rest assured, your message is important to us. The concerned person will reach out to you on the next working day.\r\nThank you for your understanding.";
-                            await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.aiMessage, Thread_Id = openAiThread.id }, "assistant");
+                            await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.aiMessage, Thread_Id = openAiThread.id }, new Dictionary<string, string> { }, "assistant");
                         }
                     }
                     else
@@ -137,7 +137,7 @@ namespace Kaizen.API
                     if (thread.AiMode)
                     {
                         // Get AI response if in AI mode
-                        await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = thread.ThreadId });
+                        await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = assistantId, Message = data.message, Thread_Id = thread.ThreadId }, new Dictionary<string, string> { });
                         await _webPubSubService.MessageRecieved(thread.ThreadId);
                         if (isLeasing)
                         {
@@ -150,7 +150,7 @@ namespace Kaizen.API
                             {
                                 data.aiMessage = IsOfficeHours(_logger) ? "Hello! Welcome to Kaizen. Thank you for your interest in our property. I have forwarded your question to one of our agents. Someone will be soon in contact with you."
                             : "Hello,\r\nThank you for reaching out to us! Our office hours are from 9 am to 6 pm, Monday to Saturday. Please note that our team is currently away. Rest assured, your message is important to us. The concerned person will reach out to you on the next working day.\r\nThank you for your understanding.";
-                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.aiMessage, Thread_Id = thread.ThreadId }, "assistant");
+                                await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.aiMessage, Thread_Id = thread.ThreadId }, new Dictionary<string, string> { }, "assistant");
                             }
                         }
                         else
@@ -168,7 +168,7 @@ namespace Kaizen.API
                     {
                         by = LastMesageBy.User;
                         // Add message to thread if not in AI mode
-                        await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId });
+                        await _aIAssistant.AddMessageToThread(new MessageRequest { Assistant_Id = thread.AssistantId, Message = data.message, Thread_Id = thread.ThreadId }, new Dictionary<string, string> { });
                         await _dataService.UpdateThreadHasMessages(thread.ThreadId, true);
                         await _webPubSubService.NewMessage(thread.ThreadId);
                         await _webPubSubService.MessageRecieved(thread.ThreadId);
