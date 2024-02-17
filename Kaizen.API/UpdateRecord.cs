@@ -10,10 +10,12 @@ namespace Kaizen.API
     {
         private readonly ILogger _logger;
         private readonly DataService _dataService;
-        public UpdateRecord(ILoggerFactory loggerFactory, DataService dataService)
+        private readonly IWebPubSubService _webPubSubService;
+        public UpdateRecord(ILoggerFactory loggerFactory, DataService dataService, IWebPubSubService webPubSubService)
         {
             _logger = loggerFactory.CreateLogger<UpdateRecord>();
             _dataService = dataService;
+            _webPubSubService = webPubSubService;
         }
 
         [Function("UpdateRecord")]
@@ -30,6 +32,7 @@ namespace Kaizen.API
                     
                     data.Data = await _dataService.UpdateThread(thread);
                     data.Status = true;
+                   await _webPubSubService.AgentJoined(thread.ThreadId);
                 }
 
             }

@@ -57,23 +57,23 @@ namespace Kaizen.Entities
         public async Task<GoogleSpreadSheet> UpdateSheet(GoogleSpreadSheet entry)
         {
             var collection = database.GetCollection<GoogleSpreadSheet>("Sheets");
-            var filter = Builders<GoogleSpreadSheet>.Filter.Eq(x=>x.Id,entry.Id);
-            var update = Builders<GoogleSpreadSheet>.Update.Set(x => x.SheetData, entry.SheetData).Set(x => x.SheetData, entry.SheetData).Set(x=>x.UpdatedAt,entry.UpdatedAt);
-            await collection.UpdateOneAsync(filter, update);  
+            var filter = Builders<GoogleSpreadSheet>.Filter.Eq(x => x.Id, entry.Id);
+            var update = Builders<GoogleSpreadSheet>.Update.Set(x => x.SheetData, entry.SheetData).Set(x => x.SheetData, entry.SheetData).Set(x => x.UpdatedAt, entry.UpdatedAt);
+            await collection.UpdateOneAsync(filter, update);
             return entry;
         }
 
-        public async Task<GoogleSpreadSheet> GetSheetRecord(string sid,long id)
+        public async Task<GoogleSpreadSheet> GetSheetRecord(string sid, long id)
         {
             var collection = database.GetCollection<GoogleSpreadSheet>("Sheets");
-           return await collection.Find(x=>x.SpreadSheetId==sid && x.SheetId==id).FirstOrDefaultAsync();
-           
+            return await collection.Find(x => x.SpreadSheetId == sid && x.SheetId == id).FirstOrDefaultAsync();
+
         }
 
         public async Task<List<GoogleSpreadSheet>> GetSheets()
         {
             var collection = database.GetCollection<GoogleSpreadSheet>("Sheets");
-            return await collection.Find(_=>true).ToListAsync();
+            return await collection.Find(_ => true).ToListAsync();
 
         }
 
@@ -108,7 +108,8 @@ namespace Kaizen.Entities
                     switch (steps)
                     {
                         case "avail":
-                            availability.Add(item);
+                            if (!(item.ToLower().Contains("booked") || item.ToLower().Contains("signed")))
+                                availability.Add(item);
                             break;
                         case "faq":
                             faqs.Add(item);
@@ -155,7 +156,7 @@ namespace Kaizen.Entities
                 return entry;
         }
 
-        public async Task UpdateThreadRecord(string threadId, bool aimode, string agent="")
+        public async Task UpdateThreadRecord(string threadId, bool aimode, string agent = "")
         {
             var collection = database.GetCollection<ThreadRecord>("Threads");
             var filter = Builders<ThreadRecord>.Filter.Eq(x => x.ThreadId, threadId);
@@ -206,26 +207,26 @@ namespace Kaizen.Entities
             return record;
         }
 
-        public async Task<List<ThreadRecord>> AssistantThreads(string assistantId,string text="")
+        public async Task<List<ThreadRecord>> AssistantThreads(string assistantId, string text = "")
         {
             var twoWeeksAgo = DateTime.UtcNow.AddDays(-14);
             if (string.IsNullOrEmpty(assistantId))
                 throw new Exception("AI assistant id is not provided");
             var collection = database.GetCollection<ThreadRecord>("Threads");
-            var filter =(string.IsNullOrEmpty(text))? 
+            var filter = (string.IsNullOrEmpty(text)) ?
                 Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.Deleted, false) & Builders<ThreadRecord>.Filter.Gte(x => x.LastActivityAt, twoWeeksAgo) :
-                Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.Deleted, false) & (Builders<ThreadRecord>.Filter.Regex(x=>x.PlatformUserId, new BsonRegularExpression(text, "i")) | Builders<ThreadRecord>.Filter.Regex(x => x.Alias, new BsonRegularExpression(text, "i")));
+                Builders<ThreadRecord>.Filter.Eq(x => x.AssistantId, assistantId) & Builders<ThreadRecord>.Filter.Eq(x => x.Deleted, false) & (Builders<ThreadRecord>.Filter.Regex(x => x.PlatformUserId, new BsonRegularExpression(text, "i")) | Builders<ThreadRecord>.Filter.Regex(x => x.Alias, new BsonRegularExpression(text, "i")));
             var all = await collection.Find(filter).ToListAsync();
             var groups = all.GroupBy(x => x.PlatformUserId);
             foreach (var item in groups)
             {
                 if (item.Count() > 1)
                 {
-                    foreach (var th in item.OrderByDescending(x=>x.LastActivityAt).Skip(1))
+                    foreach (var th in item.OrderByDescending(x => x.LastActivityAt).Skip(1))
                     {
                         th.Deleted = true;
                         th.Visible = false;
-                       await UpdateThread(th);
+                        await UpdateThread(th);
                     }
                 }
             }
@@ -234,10 +235,10 @@ namespace Kaizen.Entities
 
         public async Task<List<ThreadRecord>> AllThreads()
         {
-           
+
             var collection = database.GetCollection<ThreadRecord>("Threads");
 
-            return await collection.Find(_=>true).ToListAsync();
+            return await collection.Find(_ => true).ToListAsync();
         }
 
         public async Task<ThreadRecord> ThreadRecord(string assistantId, string threadId)
